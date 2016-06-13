@@ -3,10 +3,8 @@ $board = readBoard('php://stdin');
 
 $bestMove = null;
 
-var_dump(getMoves($board)); die;
-
 $result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX);
-
+echo moveToString($result['move']);
 
 function readBoard($input) {
 
@@ -24,7 +22,7 @@ function readBoard($input) {
         }
     }
     
-    $board['lastColour'] = strtoupper(trim(fgets($f)));
+    $board['lastColour'] = trim(fgets($f));
     
     return $board;
 }
@@ -86,7 +84,7 @@ function getMoves($board) {
         for ($col = 0; $col < 8; $col ++) {
             $square = $board[$row][$col];
             if ($square['piece'] != '-') {
-                if ($board['lastColour'] == $square['colour'] || $board['lastColour'] == '-') {
+                if ($board['lastColour'] == $square['piece'] || $board['lastColour'] == '-') {
                     $piece = $square['piece'];
                     if ($board['mover'] == 1 && strtoupper($piece) != $piece || $board['mover'] == 2 && strtolower($piece) != $piece) {
                         continue;
@@ -115,6 +113,10 @@ function negamax($board, $depth, $alpha, $beta) {
     
     $moves = getMoves($board);
     
+    if (count($moves) > 0) {
+        $bestMove = $moves[0];
+    }
+    
     foreach ($moves as $move) {
         $newBoard = $board;
         $newBoard[$move['row']][$move['col']]['piece'] = $board[$move['fromRow']][$move['fromCol']]['piece'];
@@ -122,8 +124,8 @@ function negamax($board, $depth, $alpha, $beta) {
         $newBoard['mover'] = $newBoard['mover'] == 1 ? 2 : 1;
         $newBoard['lastColour'] = $board[$move['fromRow']][$move['fromCol']]['colour'];
         
-        if (($move['col'] == 0 && $board['mover'] == 2) ||
-            ($move['col'] == 7 && $board['mover'] == 1)) {
+        if (($move['row'] == 0 && $board['mover'] == 2) ||
+            ($move['row'] == 7 && $board['mover'] == 1)) {
                 return [
                     'score' => PHP_INT_MAX,
                     'move' => $move,
@@ -132,6 +134,10 @@ function negamax($board, $depth, $alpha, $beta) {
         
         $result = negamax($newBoard, $depth + 1, -$beta, -$alpha);
         $score = -$result['score'];
+        
+        if ($depth == 0 && moveToString($move) == '7 1 1 7') {
+            //echo $score; die;
+        }
         
         if ($score > $bestScore) {
             $bestMove = $move;
