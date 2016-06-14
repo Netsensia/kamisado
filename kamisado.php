@@ -12,7 +12,9 @@ $originalBoard = $board;
 for ($i=0; $i<1000; $i++) {
     
     $board = $originalBoard;
-    
+    if ($i % 2 == 0) {
+        $board['mover'] = 2;
+    }
     echo "GAME $i" . PHP_EOL;
     
     $moveCount = 0;
@@ -23,7 +25,7 @@ for ($i=0; $i<1000; $i++) {
             $evaluationFunction = "evaluateRand";
         }
         
-        $result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, $board['lastColour'] == '-' ? 2 : 5);
+        $result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, $board['lastColour'] == '-' ? 1 : 1);
         
         if ($result['move'] == null) {
             printBoard($board);
@@ -209,8 +211,6 @@ function negamax($board, $depth, $alpha, $beta, $maxDepth) {
         }
     }
     
-    assert(count($moves) == 0 || $bestMove != null);
-    
     return [
         'score' => $bestScore,
         'move' => $bestMove,
@@ -242,24 +242,31 @@ function evaluate($board) {
     $score = 0;
 
     for ($row=0; $row<8; $row++) {
-
         for ($col=0; $col<8; $col++) {
             $piece = $board[$row][$col]['piece'];
             if ($piece != '-') {
                 if (strtoupper($piece) == $piece) {
                     // penalise if this piece can't move
                     $board['mover'] = 1;
-                    $score -= count(getMovesForSquare($board, $row, $col)) == 0 ? 100 : 0;
+                    $score -= count(getMovesForSquare($board, $row, $col)) == 0 ? 10 : 0;
                     // bonus for available moves
-                    $score += count(getMoves($board));
                 } else {
                     $board['mover'] = 2;
-                    $score += count(getMovesForSquare($board, $row, $col)) == 0 ? 100 : 0;
-                    $score -= count(getMoves($board));
+                    $score += count(getMovesForSquare($board, $row, $col)) == 0 ? 10 : 0;
                 }
             }
         }
     }
-
-    return $board['mover'] == 1 ? $score : -$score;
+    
+    $board['mover'] = 1;
+    $whiteMoves = count(getMoves($board));
+    $board['mover'] = 2;
+    $blackMoves = count(getMoves($board));
+    
+    $score += $whiteMoves;
+    $score -= $blackMoves;
+    
+    $score = $board['mover'] == 1 ? $score : -$score;
+    
+    return $score;
 }
