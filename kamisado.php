@@ -1,14 +1,15 @@
 <?php
 $board = readBoard('php://stdin');
 
+const VICTORY = 1000000;
 // printBoard($board);
-// echo evaluateBlack($board) . PHP_EOL;
+// echo evaluate($board) . PHP_EOL;
 // die;
 
 $whiteWins = 0;
 $originalBoard = $board;
 
-for ($i=0; $i<100; $i++) {
+for ($i=0; $i<1000; $i++) {
     
     $board = $originalBoard;
     
@@ -17,28 +18,33 @@ for ($i=0; $i<100; $i++) {
     $moveCount = 0;
     do {
         if ($board['mover'] == 1) {
-            $evaluationFunction = "evaluateWhite";
+            $evaluationFunction = "evaluate";
         } else {
-            $evaluationFunction = "evaluateBlack";
+            $evaluationFunction = "evaluateRand";
         }
         
-        $result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, $board['lastColour'] == '-' ? 2 : 4);
+        $result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, $board['lastColour'] == '-' ? 2 : 5);
+        
+        if ($result['move'] == null) {
+            printBoard($board);
+            throw new Exception('No move found for board');
+        }
+        
+        $board = makeMove($board, $result['move']);
+        
+        $moveCount ++;
         
         if (isGameOver($board, $result['move'])) {
+            if ($board['mover'] == 2) {
+                $whiteWins ++;
+            }
             break;
         }
-        $board = makeMove($board, $result['move']);
-        $moveCount ++;
-        //printBoard($board);
         
     } while (true);
     
-    if ($board['mover'] == 2) {
-        $whiteWins ++;
-    }
-    
     echo "Moves made = " . $moveCount . PHP_EOL;
-    echo "Wins = " . $whiteWins . '/' . ($i+1) . PHP_EOL;
+    echo "White wins = " . number_format(100 * ($whiteWins / ($i+1)), 2) . '%' . PHP_EOL;
     
 }
 
@@ -50,9 +56,13 @@ echo moveToString($result['move']);
 function isGameOver($board, $move) {
     $moves = getMoves($board);
     if (count($moves) == 0) {
+        printBoard($board);
+        echo ($board['mover'] == 1 ? "Black" : "White") . " wins, opponent has no moves" . PHP_EOL;
         return true;
     }
     if ($move['row'] == 0 || $move['row'] == 7) {
+        printBoard($board);
+        echo ($board['mover'] == 1 ? "Black" : "White") . " wins, reached final rank" . PHP_EOL;
         return true;
     }
     return false;
@@ -164,10 +174,8 @@ function negamax($board, $depth, $alpha, $beta, $maxDepth) {
     
     $moves = getMoves($board);
     
-    if (count($moves) > 0) {
-        $bestMove = $moves[0];
-    } else {
-        //echo 'no moves' . PHP_EOL;
+    if (count($moves) == 0) {
+        return -VICTORY;
     }
     
     foreach ($moves as $move) {
@@ -179,7 +187,7 @@ function negamax($board, $depth, $alpha, $beta, $maxDepth) {
         if (($move['row'] == 0 && $board['mover'] == 2) ||
             ($move['row'] == 7 && $board['mover'] == 1)) {
                 return [
-                    'score' => PHP_INT_MAX,
+                    'score' => VICTORY,
                     'move' => $move,
                 ];
         }
@@ -200,6 +208,8 @@ function negamax($board, $depth, $alpha, $beta, $maxDepth) {
             break;
         }
     }
+    
+    assert(count($moves) == 0 || $bestMove != null);
     
     return [
         'score' => $bestScore,
@@ -223,16 +233,11 @@ function makeMove($board, $move)
     return $newBoard;
 }
 
-function evaluateWhite($board) {
-
-    return -evaluateBlack($board);
-    $board['lastColour'] = '-';
-    $moves = getMoves($board);
-
-    return count($moves);
+function evaluateRand($board) {
+    return rand(-10,10);
 }
 
-function evaluateBlack($board) {
+function evaluate($board) {
 
     $score = 0;
 
@@ -245,9 +250,12 @@ function evaluateBlack($board) {
                     // penalise if this piece can't move
                     $board['mover'] = 1;
                     $score -= count(getMovesForSquare($board, $row, $col)) == 0 ? 100 : 0;
+                    // bonus for available moves
+                    $score += count(getMoves($board));
                 } else {
                     $board['mover'] = 2;
                     $score += count(getMovesForSquare($board, $row, $col)) == 0 ? 100 : 0;
+                    $score -= count(getMoves($board));
                 }
             }
         }
