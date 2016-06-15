@@ -1,60 +1,66 @@
 <?php
+const IS_TEST = true;
+const VICTORY = 1000000;
+const PENALISE = 100;
+const STD_DEPTH = 3;
+
 $board = readBoard('php://stdin');
 
-const VICTORY = 1000000;
-const PENALISE = 5;
-// printBoard($board);
-// echo evaluate($board) . PHP_EOL;
-// die;
+if (IS_TEST) {
+    $whiteWins = 0;
+    $originalBoard = $board;
 
-$whiteWins = 0;
-$originalBoard = $board;
-
-for ($i=0; $i<1000; $i++) {
-    
-    $board = $originalBoard;
-    if ($i % 2 == 0) {
-        $board['mover'] = 2;
-    }
-    echo "GAME $i" . PHP_EOL;
-    
-    $moveCount = 0;
-    do {
-        if ($board['mover'] == 1) {
-            $result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, $board['lastColour'] == '-' ? 1 : 1, "evaluateRand");
-        } else {
-            $result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, $board['lastColour'] == '-' ? 1 : 4, "evaluateRand");
+    $totalMoves = 0;
+    $totalTime = 0;
+    for ($i=0; $i<1000; $i++) {
+        
+        $t = microtime(true);
+        $board = $originalBoard;
+        if ($i % 2 == 0) {
+            $board['mover'] = 2;
         }
+        echo "GAME $i" . PHP_EOL;
         
-        
-        if ($result['move'] == null) {
-            printBoard($board);
-            throw new Exception('No move found for board');
-        }
-        
-        $board = makeMove($board, $result['move']);
-//         printBoard($board);
-//         echo evaluate($board) . PHP_EOL;
-        
-        $moveCount ++;
-        
-        if (isGameOver($board, $result['move'])) {
-            if ($board['mover'] == 2) {
-                $whiteWins ++;
+        $moveCount = 0;
+        do {
+            if ($board['mover'] == 1) {
+                $result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, $board['lastColour'] == '-' ? 1 : STD_DEPTH, "evaluateRand");
+            } else {
+                $result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, $board['lastColour'] == '-' ? 1 : STD_DEPTH + 3, "evaluateRand");
             }
-            break;
-        }
+                        
+            if ($result['move'] == null) {
+                printBoard($board);
+                throw new Exception('No move found for board');
+            }
+            
+            $board = makeMove($board, $result['move']);
+    //         printBoard($board);
+    //         echo evaluate($board) . PHP_EOL;
+            
+            $moveCount ++;
+            
+            if (isGameOver($board, $result['move'])) {
+                if ($board['mover'] == 2) {
+                    $whiteWins ++;
+                }
+                break;
+            }
+        } while (true);
         
-    } while (true);
+        $totalTime += (microtime(true) - $t);
+        $totalMoves += $moveCount;
+        
+        echo "Moves made = " . $moveCount . PHP_EOL;
+        echo "White wins = " . number_format(100 * ($whiteWins / ($i+1)), 2) . '%' . PHP_EOL;
+        echo "Average move time = " . number_format($totalTime / $totalMoves, 4) . PHP_EOL;
+        
+    }
     
-    echo "Moves made = " . $moveCount . PHP_EOL;
-    echo "White wins = " . number_format(100 * ($whiteWins / ($i+1)), 2) . '%' . PHP_EOL;
-    
+    die;
 }
 
-die;
-
-$result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, 5, "evaluate");
+$result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, $board['lastColour'] == '-' ? 1 : STD_DEPTH, "evaluate");
 echo moveToString($result['move']);
 
 function isGameOver($board, $move) {
@@ -184,20 +190,16 @@ function negamax($board, $depth, $alpha, $beta, $maxDepth, $evaluationFunction) 
     
     foreach ($moves as $move) {
         //echo "Making move " . moveToString($move) . PHP_EOL;
-        
-        $newBoard = makeMove($board, $move);
-        
         //printBoard($newBoard);
         if ($move['row'] == 0 || $move['row'] == 7) {
-                return [
-                    'score' => VICTORY,
-                    'move' => $move,
-                ];
+            return [
+                'score' => VICTORY,
+                'move' => $move,
+            ];
         }
-        
+                
+        $newBoard = makeMove($board, $move);
         $result = negamax($newBoard, $depth + 1, -$beta, -$alpha, $maxDepth, $evaluationFunction);
-        
-        //echo "We're back at depth " . $depth . PHP_EOL;
         $score = -$result['score'];
         
         if ($score > $bestScore) {
@@ -231,7 +233,7 @@ function makeMove($board, $move)
 }
 
 function evaluateRand($board) {
-    return rand(-10,10);
+    return 0;
 }
 
 function evaluate($board) {
@@ -246,7 +248,6 @@ function evaluate($board) {
                     // penalise if this piece can't move
                     $board['mover'] = 1;
                     $score -= count(getMovesForSquare($board, $row, $col)) == 0 ? PENALISE : 0;
-                    // bonus for available moves
                 } else {
                     $board['mover'] = 2;
                     $score += count(getMovesForSquare($board, $row, $col)) == 0 ? PENALISE : 0;
