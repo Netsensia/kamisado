@@ -2,6 +2,7 @@
 $board = readBoard('php://stdin');
 
 const VICTORY = 1000000;
+const PENALISE = 5;
 // printBoard($board);
 // echo evaluate($board) . PHP_EOL;
 // die;
@@ -20,12 +21,11 @@ for ($i=0; $i<1000; $i++) {
     $moveCount = 0;
     do {
         if ($board['mover'] == 1) {
-            $evaluationFunction = "evaluate";
+            $result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, $board['lastColour'] == '-' ? 1 : 1, "evaluateRand");
         } else {
-            $evaluationFunction = "evaluateRand";
+            $result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, $board['lastColour'] == '-' ? 1 : 4, "evaluateRand");
         }
         
-        $result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, $board['lastColour'] == '-' ? 1 : 1);
         
         if ($result['move'] == null) {
             printBoard($board);
@@ -33,6 +33,8 @@ for ($i=0; $i<1000; $i++) {
         }
         
         $board = makeMove($board, $result['move']);
+//         printBoard($board);
+//         echo evaluate($board) . PHP_EOL;
         
         $moveCount ++;
         
@@ -52,18 +54,16 @@ for ($i=0; $i<1000; $i++) {
 
 die;
 
-$result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, 5);
+$result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, 5, "evaluate");
 echo moveToString($result['move']);
 
 function isGameOver($board, $move) {
     $moves = getMoves($board);
     if (count($moves) == 0) {
-        printBoard($board);
         echo ($board['mover'] == 1 ? "Black" : "White") . " wins, opponent has no moves" . PHP_EOL;
         return true;
     }
     if ($move['row'] == 0 || $move['row'] == 7) {
-        printBoard($board);
         echo ($board['mover'] == 1 ? "Black" : "White") . " wins, reached final rank" . PHP_EOL;
         return true;
     }
@@ -158,9 +158,8 @@ function getMoves($board) {
     return $moves;
 }
 
-function negamax($board, $depth, $alpha, $beta, $maxDepth) {
+function negamax($board, $depth, $alpha, $beta, $maxDepth, $evaluationFunction) {
     
-    global $evaluationFunction;
     //echo 'Depth = ' . $depth . PHP_EOL;
     $bestMove = null;
     
@@ -177,7 +176,10 @@ function negamax($board, $depth, $alpha, $beta, $maxDepth) {
     $moves = getMoves($board);
     
     if (count($moves) == 0) {
-        return -VICTORY;
+        return [
+            'score' => -VICTORY,
+            'move' => null,
+        ];
     }
     
     foreach ($moves as $move) {
@@ -186,15 +188,14 @@ function negamax($board, $depth, $alpha, $beta, $maxDepth) {
         $newBoard = makeMove($board, $move);
         
         //printBoard($newBoard);
-        if (($move['row'] == 0 && $board['mover'] == 2) ||
-            ($move['row'] == 7 && $board['mover'] == 1)) {
+        if ($move['row'] == 0 || $move['row'] == 7) {
                 return [
                     'score' => VICTORY,
                     'move' => $move,
                 ];
         }
         
-        $result = negamax($newBoard, $depth + 1, -$beta, -$alpha, $maxDepth);
+        $result = negamax($newBoard, $depth + 1, -$beta, -$alpha, $maxDepth, $evaluationFunction);
         
         //echo "We're back at depth " . $depth . PHP_EOL;
         $score = -$result['score'];
@@ -216,10 +217,6 @@ function negamax($board, $depth, $alpha, $beta, $maxDepth) {
         'move' => $bestMove,
     ];
 }
-
-/**
- * @param board
- */
 
 function makeMove($board, $move)
 {
@@ -248,11 +245,11 @@ function evaluate($board) {
                 if (strtoupper($piece) == $piece) {
                     // penalise if this piece can't move
                     $board['mover'] = 1;
-                    $score -= count(getMovesForSquare($board, $row, $col)) == 0 ? 10 : 0;
+                    $score -= count(getMovesForSquare($board, $row, $col)) == 0 ? PENALISE : 0;
                     // bonus for available moves
                 } else {
                     $board['mover'] = 2;
-                    $score += count(getMovesForSquare($board, $row, $col)) == 0 ? 10 : 0;
+                    $score += count(getMovesForSquare($board, $row, $col)) == 0 ? PENALISE : 0;
                 }
             }
         }
