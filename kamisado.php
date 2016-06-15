@@ -2,11 +2,13 @@
 const IS_TEST = true;
 const VICTORY = 1000000;
 const PENALISE = 100;
-const STD_DEPTH = 3;
+const STD_DEPTH = 5;
 
-$board = readBoard('php://stdin');
+$colours = [];
 
 if (IS_TEST) {
+    $board = readBoard('input.txt', $colours);
+    
     $whiteWins = 0;
     $originalBoard = $board;
 
@@ -20,13 +22,14 @@ if (IS_TEST) {
             $board['mover'] = 2;
         }
         echo "GAME $i" . PHP_EOL;
+        //printBoard($board);
         
         $moveCount = 0;
         do {
             if ($board['mover'] == 1) {
-                $result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, $board['lastColour'] == '-' ? 1 : STD_DEPTH, "evaluateRand");
+                $result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, $board['lastColour'] == '-' ? 3 : 5, "evaluate");
             } else {
-                $result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, $board['lastColour'] == '-' ? 1 : STD_DEPTH + 3, "evaluateRand");
+                $result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, $board['lastColour'] == '-' ? 3 : 5, "evaluateRand");
             }
                         
             if ($result['move'] == null) {
@@ -35,7 +38,8 @@ if (IS_TEST) {
             }
             
             $board = makeMove($board, $result['move']);
-    //         printBoard($board);
+            
+            //printBoard($board);
     //         echo evaluate($board) . PHP_EOL;
             
             $moveCount ++;
@@ -60,7 +64,9 @@ if (IS_TEST) {
     die;
 }
 
-$result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, $board['lastColour'] == '-' ? 1 : STD_DEPTH, "evaluate");
+$board = readBoard('php://stdin', $colours);
+
+$result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, $board['lastColour'] == '-' ? 1 : STD_DEPTH, "evaluateRand");
 echo moveToString($result['move']);
 
 function isGameOver($board, $move) {
@@ -76,7 +82,7 @@ function isGameOver($board, $move) {
     return false;
 }
 
-function readBoard($input) {
+function readBoard($input, &$colours) {
 
     $f = fopen($input, 'r');
     
@@ -85,10 +91,8 @@ function readBoard($input) {
     for ($row=0; $row<8; $row++) {
         $rowString = fgets($f);
         for ($col=0; $col<8; $col++) {
-            $board[$row][$col] = [
-                'colour' => $rowString[$col * 2],
-                'piece' => $rowString[$col * 2 + 1],
-            ];
+            $board[$row][$col] = $rowString[$col * 2 + 1];
+            $colours[$row][$col] = $rowString[$col * 2];
         }
     }
     
@@ -106,11 +110,13 @@ function moveToString($move) {
 }
 
 function printBoard($board) {
+    global $colours;
+    
     echo $board['mover'] . PHP_EOL;
     for ($row=0; $row<8; $row++) {
         for ($col=0; $col<8; $col++) {
-            echo $board[$row][$col]['colour'];
-            echo $board[$row][$col]['piece'];
+            echo $colours[$row][$col];
+            echo $board[$row][$col];
         }
         echo PHP_EOL;
     }
@@ -119,13 +125,13 @@ function printBoard($board) {
 
 function getMovesForSquare($board, $row, $col) {
     
-    $piece = $board[$row][$col]['piece'];
+    $piece = $board[$row][$col];
 
     $moves = [];
     $yDir = $board['mover'] == 1 ? -1 : 1;
 
     foreach ([0,-1,1] as $xDir) {
-        for ($y=$row+$yDir, $x=$col+$xDir; $x<8 && $x>-1 && $y<8 && $y>-1 && $board[$y][$x]['piece'] == '-'; $y+=$yDir, $x+=$xDir) {
+        for ($y=$row+$yDir, $x=$col+$xDir; $x<8 && $x>-1 && $y<8 && $y>-1 && $board[$y][$x] == '-'; $y+=$yDir, $x+=$xDir) {
             $moves[] = [
                 'fromRow' => $row,
                 'fromCol' => $col,
@@ -143,16 +149,35 @@ function getMoves($board) {
     for ($row = 0; $row < 8; $row ++) {
         for ($col = 0; $col < 8; $col ++) {
             $square = $board[$row][$col];
-            if ($square['piece'] != '-') {
-                if ($board['lastColour'] == $square['piece'] || $board['lastColour'] == '-') {
-                    $piece = $square['piece'];
-                    if ($board['mover'] == 1 && strtoupper($piece) != $piece || $board['mover'] == 2 && strtolower($piece) != $piece) {
+            if ($square != '-') {
+                if ($board['lastColour'] == $square || $board['lastColour'] == '-') {
+                    $piece = $square;
+                    $mover = $board['mover'];
+                    if ($mover == 1 && strtoupper($piece) != $piece || $mover == 2 && strtolower($piece) != $piece) {
                         continue;
                     }
                     $squareMoves = getMovesForSquare($board, $row, $col);
-                    usort($squareMoves, function ($a, $b) {
-                        return rand(-1,1); 
-                    });
+                    
+                    $test = count($squareMoves);
+                    
+                    if ($mover == 1) {
+                        usort($squareMoves, function ($a, $b) {
+                            if (rand(1,2) == 1) {
+                                return rand(-1,1);
+                            }
+                            return $a['row'] < $b['row'] ? -1 : ($a['row'] == $b['row'] ? 0 : 1);
+                        });
+                    } else {
+                        usort($squareMoves, function ($a, $b) {
+                            if (rand(1,2) == 1) {
+                                return rand(-1,1);
+                            }
+                            return $a['row'] > $b['row'] ? -1 : ($a['row'] == $b['row'] ? 0 : 1);
+                        });
+                    }
+                    
+                    assert($test == count($squareMoves));
+                    
                     foreach ($squareMoves as $move) {
                         $moves[] = $move;
                     }
@@ -201,7 +226,7 @@ function negamax($board, $depth, $alpha, $beta, $maxDepth, $evaluationFunction) 
         $newBoard = makeMove($board, $move);
         $result = negamax($newBoard, $depth + 1, -$beta, -$alpha, $maxDepth, $evaluationFunction);
         $score = -$result['score'];
-        
+
         if ($score > $bestScore) {
             $bestMove = $move;
             $bestScore = $score;
@@ -222,12 +247,14 @@ function negamax($board, $depth, $alpha, $beta, $maxDepth, $evaluationFunction) 
 
 function makeMove($board, $move)
 {
+    global $colours;
+    
     $newBoard = $board;
     
-    $newBoard[$move['row']][$move['col']]['piece'] = $board[$move['fromRow']][$move['fromCol']]['piece'];
-    $newBoard[$move['fromRow']][$move['fromCol']]['piece'] = '-';
+    $newBoard[$move['row']][$move['col']] = $board[$move['fromRow']][$move['fromCol']];
+    $newBoard[$move['fromRow']][$move['fromCol']] = '-';
     $newBoard['mover'] = $newBoard['mover'] == 1 ? 2 : 1;
-    $newBoard['lastColour'] = $newBoard['mover'] == 1 ? strtoupper($board[$move['row']][$move['col']]['colour']) : strtolower($board[$move['row']][$move['col']]['colour']);
+    $newBoard['lastColour'] = $newBoard['mover'] == 1 ? strtoupper($colours[$move['row']][$move['col']]) : strtolower($colours[$move['row']][$move['col']]);
     
     return $newBoard;
 }
@@ -242,7 +269,7 @@ function evaluate($board) {
 
     for ($row=0; $row<8; $row++) {
         for ($col=0; $col<8; $col++) {
-            $piece = $board[$row][$col]['piece'];
+            $piece = $board[$row][$col];
             if ($piece != '-') {
                 if (strtoupper($piece) == $piece) {
                     // penalise if this piece can't move
