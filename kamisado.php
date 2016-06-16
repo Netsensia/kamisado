@@ -1,7 +1,7 @@
 <?php
 const VICTORY = 1000000;
 const PENALISE = 100;
-const STD_DEPTH = 7;
+const STD_DEPTH = 8;
 
 $colours = [];
 
@@ -27,59 +27,83 @@ function isGameOver($board, $move) {
     return false;
 }
 
-function getMovesForSquare($board, $row, $col) {
+function getMoves($board) {
     
     $moves = [];
-    $yDir = $board['mover'] == 1 ? -1 : 1;
-
-    foreach ([0,-1,1] as $xDir) {
-        for ($y=$row+$yDir, $x=$col+$xDir; isset($board[$y][$x]) && $board[$y][$x] == '-'; $y+=$yDir, $x+=$xDir) {
-            $moves[] = [
-                'fromRow' => $row,
-                'fromCol' => $col,
-                'row' => $y,
-                'col' => $x,
-            ];
+    
+    if ($board['mover'] == 1) {
+        $yDir = -1;
+        $colourIndex = 'whitelocations';
+    } else {
+        $yDir = 1;
+        $colourIndex = 'blacklocations';
+    }
+    
+    if ($board['lastColour'] == '-') {
+        foreach ($board[$colourIndex] as $location) {
+            $col = $location['col'];
+            $row = $location['row'];
+            
+            foreach ([0,-1,1] as $xDir) {
+                for ($y=$row+$yDir, $x=$col+$xDir; isset($board[$y][$x]) && $board[$y][$x] == '-'; $y+=$yDir, $x+=$xDir) {
+                    $moves[] = [
+                        'fromRow' => $row,
+                        'fromCol' => $col,
+                        'row' => $y,
+                        'col' => $x,
+                    ];
+                }
+            }
         }
+    } else {
+        $location = $board[$colourIndex][$board['lastColour']];
+        
+        $col = $location['col'];
+        $row = $location['row'];
+        
+        foreach ([0,-1,1] as $xDir) {
+            for ($y=$row+$yDir, $x=$col+$xDir; isset($board[$y][$x]) && $board[$y][$x] == '-'; $y+=$yDir, $x+=$xDir) {
+                $moves[] = [
+                    'fromRow' => $row,
+                    'fromCol' => $col,
+                    'row' => $y,
+                    'col' => $x,
+                ];
+            }
+        }
+    }
+
+    if ($board['mover'] == 1) {
+        usort($moves, function ($a, $b) {
+            return $a['row'] < $b['row'] ? -1 : ($a['row'] == $b['row'] ? 0 : 1);
+        });
+    } else {
+        usort($moves, function ($a, $b) {
+            return $a['row'] > $b['row'] ? -1 : ($a['row'] == $b['row'] ? 0 : 1);
+        });
     }
     
     return $moves;
 }
 
-function getMoves($board) {
-    $moves = [];
-    for ($row = 0; $row < 8; $row ++) {
-        for ($col = 0; $col < 8; $col ++) {
-            $square = $board[$row][$col];
-            if ($square != '-') {
-                if ($board['lastColour'] == $square || $board['lastColour'] == '-') {
-                    $piece = $square;
-                    if ($board['mover'] == 1 && strtoupper($piece) != $piece || $board['mover'] == 2 && strtolower($piece) != $piece) {
-                        continue;
-                    }
-                    $squareMoves = getMovesForSquare($board, $row, $col);
-                    
-                    $test = count($squareMoves);
-                    
-                    if ($board['mover'] == 1) {
-                        usort($squareMoves, function ($a, $b) {
-                            return $a['row'] < $b['row'] ? -1 : ($a['row'] == $b['row'] ? 0 : 1);
-                        });
-                    } else {
-                        usort($squareMoves, function ($a, $b) {
-                            return $a['row'] > $b['row'] ? -1 : ($a['row'] == $b['row'] ? 0 : 1);
-                        });
-                    }
-                    
-                    foreach ($squareMoves as $move) {
-                        $moves[] = $move;
-                    }
-                }
-            }
+function makeMove($board, $move)
+{
+    global $colours;
+
+    $colourIndex = $board['mover'] == 1 ? 'whitelocations' : 'blacklocations';
+    foreach ($board[$colourIndex] as &$location) {
+        if ($location['row'] == $move['fromRow'] && $location['col'] == $move['fromCol']) {
+            $location['row'] = $move['row'];
+            $location['col'] = $move['col'];
         }
     }
     
-    return $moves;
+    $board[$move['row']][$move['col']] = $board[$move['fromRow']][$move['fromCol']];
+    $board[$move['fromRow']][$move['fromCol']] = '-';
+    $board['mover'] = $board['mover'] == 1 ? 2 : 1;
+    $board['lastColour'] = $colours[$board['mover']][$move['row']][$move['col']];
+        
+    return $board;
 }
 
 function negamax($board, $depth, $alpha, $beta, $maxDepth) {
@@ -135,34 +159,8 @@ function negamax($board, $depth, $alpha, $beta, $maxDepth) {
     ];
 }
 
-function makeMove($board, $move)
-{
-    global $colours;
-    
-    $board[$move['row']][$move['col']] = $board[$move['fromRow']][$move['fromCol']];
-    $board[$move['fromRow']][$move['fromCol']] = '-';
-    $board['mover'] = $board['mover'] == 1 ? 2 : 1;
-    $board['lastColour'] = $colours[$board['mover']][$move['row']][$move['col']];
-    
-    return $board;
-}
-
 function moveToString($move) {
     return $move['fromRow'] . ' ' . $move['fromCol'] . ' ' . $move['row'] . ' ' . $move['col'];
-}
-
-function printBoard($board) {
-    global $colours;
-
-    echo $board['mover'] . PHP_EOL;
-    for ($row=0; $row<8; $row++) {
-        for ($col=0; $col<8; $col++) {
-            echo $colours[$row][$col];
-            echo $board[$row][$col];
-        }
-        echo PHP_EOL;
-    }
-    echo $board['lastColour'] . PHP_EOL;
 }
 
 function readBoard($input, &$colours) {
@@ -174,14 +172,48 @@ function readBoard($input, &$colours) {
     for ($row=0; $row<8; $row++) {
         $rowString = fgets($f);
         for ($col=0; $col<8; $col++) {
-            $board[$row][$col] = $rowString[$col * 2 + 1];
-            $colours[1][$row][$col] = $rowString[$col * 2];
+            $piece = $rowString[$col * 2 + 1];
+            $colour = $rowString[$col * 2];
+            $board[$row][$col] = $piece;
+            $colours[1][$row][$col] = $colour;
+            if ($piece != '-') {
+                $player = $piece == strtoupper($piece) ? 'white' : 'black';
+                $board[$player . 'locations'][$piece] = [
+                    'row' => $row,
+                    'col' => $col,
+                ];
+            }
         }
     }
 
     $board['lastColour'] = trim(fgets($f));
 
     return $board;
+}
+
+function printBoard($board) {
+    global $colours;
+
+    echo $board['mover'] . PHP_EOL;
+    for ($row=0; $row<8; $row++) {
+        for ($col=0; $col<8; $col++) {
+            echo $colours[1][$row][$col];
+            echo $board[$row][$col];
+        }
+        echo PHP_EOL;
+    }
+    echo $board['lastColour'] . PHP_EOL;
+    echo 'WHITE' . PHP_EOL;
+    foreach ($board['whitelocations'] as $location) {
+        echo '[' . $location['row'] . ',' . $location['col'] . ']';
+    }
+    echo PHP_EOL;
+    echo 'BLACK' . PHP_EOL;
+    foreach ($board['blacklocations'] as $location) {
+        echo '[' . $location['row'] . ',' . $location['col'] . ']';
+    }
+    echo PHP_EOL;
+    
 }
 
 function test() {
