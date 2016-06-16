@@ -139,14 +139,12 @@ function makeMove($board, $move)
 {
     global $colours;
     
-    $newBoard = $board;
+    $board[$move['row']][$move['col']] = $board[$move['fromRow']][$move['fromCol']];
+    $board[$move['fromRow']][$move['fromCol']] = '-';
+    $board['mover'] = $board['mover'] == 1 ? 2 : 1;
+    $board['lastColour'] = $colours[$board['mover']][$move['row']][$move['col']];
     
-    $newBoard[$move['row']][$move['col']] = $board[$move['fromRow']][$move['fromCol']];
-    $newBoard[$move['fromRow']][$move['fromCol']] = '-';
-    $newBoard['mover'] = $newBoard['mover'] == 1 ? 2 : 1;
-    $newBoard['lastColour'] = $newBoard['mover'] == 1 ? strtoupper($colours[$move['row']][$move['col']]) : strtolower($colours[$move['row']][$move['col']]);
-    
-    return $newBoard;
+    return $board;
 }
 
 function moveToString($move) {
@@ -177,7 +175,7 @@ function readBoard($input, &$colours) {
         $rowString = fgets($f);
         for ($col=0; $col<8; $col++) {
             $board[$row][$col] = $rowString[$col * 2 + 1];
-            $colours[$row][$col] = $rowString[$col * 2];
+            $colours[1][$row][$col] = $rowString[$col * 2];
         }
     }
 
@@ -190,6 +188,13 @@ function test() {
     global $colours;
 
     $board = readBoard('input.txt', $colours);
+    
+    // setup lowercase colours for quick lookup
+    for ($i=0; $i<8; $i++) {
+        for ($j=0; $j<8; $j++) {
+            $colours[2][$i][$j] = strtolower($colours[1][$i][$j]);
+        }
+    }
 
     $whiteWins = 0;
     $originalBoard = $board;
