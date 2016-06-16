@@ -1,15 +1,18 @@
 <?php
 const VICTORY = 1000000;
 const PENALISE = 100;
-const STD_DEPTH = 8;
+const MAX_DEPTH = 50;
 
 $colours = [];
 
-test();
+run();
 
 function run() {
+    global $colours;
+    
     $board = readBoard('php://stdin', $colours);
-    $result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, $board['lastColour'] == '-' ? 3 : STD_DEPTH);
+    
+    $result = getBestMove($board);
     echo moveToString($result['move']);
     echo PHP_EOL;
 }
@@ -56,6 +59,9 @@ function getMoves($board) {
             }
         }
     } else {
+        if (!isset($board[$colourIndex][$board['lastColour']])) {
+            die;
+        }
         $location = $board[$colourIndex][$board['lastColour']];
         
         $col = $location['col'];
@@ -187,6 +193,13 @@ function readBoard($input, &$colours) {
     }
 
     $board['lastColour'] = trim(fgets($f));
+    
+    // setup lowercase colours for quick lookup
+    for ($i=0; $i<8; $i++) {
+        for ($j=0; $j<8; $j++) {
+            $colours[2][$i][$j] = strtolower($colours[1][$i][$j]);
+        }
+    }
 
     return $board;
 }
@@ -216,18 +229,25 @@ function printBoard($board) {
     
 }
 
+function getBestMove($board) {
+    
+    $start = microtime(true);
+    for ($depth = 3; $depth <= MAX_DEPTH; $depth ++) {
+        $result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, $depth);
+        $elapsed = microtime(true) - $start;
+        if ($elapsed > 0.2 || $depth == MAX_DEPTH) {
+            $result['depth'] = $depth;
+            $result['elapsed'] = $elapsed;
+            return $result;
+        }
+    }
+}
+
 function test() {
     global $colours;
 
     $board = readBoard('input.txt', $colours);
     
-    // setup lowercase colours for quick lookup
-    for ($i=0; $i<8; $i++) {
-        for ($j=0; $j<8; $j++) {
-            $colours[2][$i][$j] = strtolower($colours[1][$i][$j]);
-        }
-    }
-
     $whiteWins = 0;
     $originalBoard = $board;
 
@@ -235,17 +255,19 @@ function test() {
     $totalTime = 0;
     for ($i=0; $i<1; $i++) {
 
-        $t = microtime(true);
         $board = $originalBoard;
         echo "GAME $i" . PHP_EOL;
 
         $moveCount = 0;
         do {
-            if ($board['mover'] == 1) {
-                $result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, $board['lastColour'] == '-' ? 3 : STD_DEPTH);
-            } else {
-                $result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, $board['lastColour'] == '-' ? 3 : STD_DEPTH);
-            }
+            
+            echo "Move = " . ($moveCount + 1) . PHP_EOL;
+            $result = getBestMove($board);
+            //$result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, $board['lastColour'] == '-' ? 3 : 7);
+            
+            echo "Time = " . number_format($result['elapsed'], 2);
+            echo ' Depth = ' . $result['depth'];
+            echo PHP_EOL;
 
             if ($result['move'] == null) {
                 printBoard($board);
@@ -255,7 +277,6 @@ function test() {
             $board = makeMove($board, $result['move']);
 
             $moveCount ++;
-            echo '.';
 
             if (isGameOver($board, $result['move'])) {
                 if ($board['mover'] == 2) {
@@ -267,12 +288,10 @@ function test() {
 
         echo PHP_EOL;
 
-        $totalTime += (microtime(true) - $t);
         $totalMoves += $moveCount;
 
         echo "Moves made = " . $moveCount . PHP_EOL;
         echo "White wins = " . number_format(100 * ($whiteWins / ($i+1)), 2) . '%' . PHP_EOL;
-        echo "Average move time = " . number_format($totalTime / $totalMoves, 4) . PHP_EOL;
 
     }
 }
