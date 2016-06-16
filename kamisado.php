@@ -2,6 +2,7 @@
 const VICTORY = 1000000;
 const PENALISE = 100;
 const MAX_DEPTH = 50;
+const MAX_TIME = 1;
 
 $colours = [];
 
@@ -235,7 +236,7 @@ function getBestMove($board) {
     for ($depth = 3; $depth <= MAX_DEPTH; $depth ++) {
         $result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, $depth);
         $elapsed = microtime(true) - $start;
-        if ($elapsed > 0.2 || $depth == MAX_DEPTH) {
+        if ($elapsed > MAX_TIME || $depth == MAX_DEPTH) {
             $result['depth'] = $depth;
             $result['elapsed'] = $elapsed;
             return $result;
