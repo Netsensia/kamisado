@@ -1,13 +1,15 @@
 <?php
 const VICTORY = 1000000;
 const MAX_DEPTH = 50;
-const MAX_TIME = 5;
+const MAX_TIME = 8;
 const HASH_TABLE_POWER = 16;
 const STATUS_GETOUT = -1;
 
 $colours = [];
 $transpositionTable = [];
 $zobristValues = [];
+
+$globalBest = null;
 
 run();
 
@@ -73,6 +75,8 @@ function isGameOver($board, $move) {
 
 function getMoves($board) {
     
+    global $globalBest;
+    
     $moves = [];
     
     if ($board['mover'] == 1) {
@@ -100,9 +104,6 @@ function getMoves($board) {
             }
         }
     } else {
-        if (!isset($board[$colourIndex][$board['lastColour']])) {
-            die;
-        }
         $location = $board[$colourIndex][$board['lastColour']];
         
         $col = $location['col'];
@@ -121,11 +122,23 @@ function getMoves($board) {
     }
 
     if ($board['mover'] == 1) {
-        usort($moves, function ($a, $b) {
+        usort($moves, function ($a, $b) use ($globalBest) {
+            if ($globalBest == $a) {
+                return -1;
+            }
+            if ($globalBest == $b) {
+                return 1;
+            }
             return $a['row'] < $b['row'] ? -1 : ($a['row'] == $b['row'] ? 0 : 1);
         });
     } else {
-        usort($moves, function ($a, $b) {
+        usort($moves, function ($a, $b) use ($globalBest) {
+            if ($globalBest == $a) {
+                return -1;
+            }
+            if ($globalBest == $b) {
+                return 1;
+            }
             return $a['row'] > $b['row'] ? -1 : ($a['row'] == $b['row'] ? 0 : 1);
         });
     }
@@ -147,19 +160,19 @@ function makeMove($board, $move)
     
     $piece = $board[$move['fromRow']][$move['fromCol']];
     
-    $board['hash'] ^= $zobristValues['square'][$piece][$move['fromRow']][$move['fromCol']];
+    //$board['hash'] ^= $zobristValues['square'][$piece][$move['fromRow']][$move['fromCol']];
     $board[$move['row']][$move['col']] = $piece;
 
-    $board['hash'] ^= $zobristValues['square'][$piece][$move['row']][$move['col']];
+    //$board['hash'] ^= $zobristValues['square'][$piece][$move['row']][$move['col']];
     $board[$move['fromRow']][$move['fromCol']] = '-';
     
-    $board['hash'] ^= $zobristValues['mover'][1];
-    $board['hash'] ^= $zobristValues['mover'][2];
+    //$board['hash'] ^= $zobristValues['mover'][1];
+    //$board['hash'] ^= $zobristValues['mover'][2];
     $board['mover'] = $board['mover'] == 1 ? 2 : 1;
     
-    $board['hash'] ^= $zobristValues['lastColour'][$board['lastColour']];
+    //$board['hash'] ^= $zobristValues['lastColour'][$board['lastColour']];
     $board['lastColour'] = $colours[$board['mover']][$move['row']][$move['col']];
-    $board['hash'] ^= $zobristValues['lastColour'][$board['lastColour']];
+    //$board['hash'] ^= $zobristValues['lastColour'][$board['lastColour']];
         
     return $board;
 }
@@ -295,13 +308,14 @@ function printBoard($board) {
 
 function getBestMove($board) {
     
-    global $transpositionTable;
+    global $transpositionTable, $globalBest;
     
     $moveStartTime = microtime(true);
     
     $deepestResultSoFar = null;
     
     $start = microtime(true);
+    
     for ($depth = 3; $depth <= MAX_DEPTH; $depth ++) {
         $result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, $depth, $moveStartTime, MAX_TIME);
         
@@ -310,6 +324,7 @@ function getBestMove($board) {
         } else {
             $elapsed = microtime(true) - $start;
             $deepestResultSoFar = $result;
+            $globalBest = $result['move'];
             
             $deepestResultSoFar['depth'] = $depth;
             $deepestResultSoFar['elapsed'] = $elapsed;
@@ -359,9 +374,12 @@ function test() {
         do {
             
             echo "Move = " . ($moveCount + 1) . PHP_EOL;
+            
+            $t = microtime(true);
             $result = getBestMove($board);
             
-            echo "Time = " . number_format($result['elapsed'], 2);
+            echo "Search time = " . number_format($result['elapsed'], 2);
+            echo " Elapsed time = " . number_format(microtime(true) - $t, 2);
             echo ' Depth = ' . $result['depth'];
             echo PHP_EOL;
 
