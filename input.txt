@@ -9,7 +9,7 @@ M-B-Y-L-G-P-O-R-
 BBGGRRYYPPMMLLOO
 -
 -----------------
-Starting position
+Starting position (1339)
 -----------------
 1
 OoLlMmPpYyRrGgBb
@@ -21,6 +21,19 @@ L-Y-B-M-R-O-P-G-
 M-B-Y-L-G-P-O-R-
 BBGGRRYYPPMMLLOO
 -
+-----------------
+After one move (1742)
+-----------------
+2
+OoLlMmPpYyRrGgBb
+R-OOP-G-L-Y-B-M-
+G-P-O-R-M-B-Y-L-
+P-M-L-O-B-G-R-Y-
+Y-R-G-B-O-L-M-P-
+L-Y-B-M-R-O-P-G-
+M-B-Y-L-G-P-O-R-
+BBGGRRYYPPMMLLO-
+o
 ----------------
 Winning move = 5 3 7 1
 ----------------

@@ -1,12 +1,52 @@
 <?php
 const VICTORY = 1000000;
-const PENALISE = 100;
 const MAX_DEPTH = 50;
-const MAX_TIME = 1;
+const MAX_TIME = 5;
+const HASH_TABLE_POWER = 16;
+const STATUS_GETOUT = -1;
 
 $colours = [];
+$transpositionTable = [];
+$zobristValues = [];
 
 run();
+
+function setTranspositionTableValues() {
+    global $transpositionTable, $zobristValues;
+    
+    srand(1);
+    $size = pow(2, HASH_TABLE_POWER);
+    $zobristValues['mover'][1] = rand(0, $size);
+    $zobristValues['mover'][2] = rand(0, $size);
+    $pieces = ['-','O','L','M','P','Y','R','G','B','o','l','m','p','y','r','g','b'];
+    foreach ($pieces as $piece) {
+        $zobristValues['lastColour'][$piece] = rand(0, $size);
+    }
+    for ($row=0; $row<8; $row++) {
+        for ($col=0; $col<8; $col++) {
+            foreach ($pieces as $piece) {
+                $zobristValues['square'][$piece][$row][$col] = rand(0, $size);
+            }
+        }
+    }
+}
+
+function calculateZobristHash($board) {
+    global $zobristValues;
+    
+    $hash = $zobristValues['mover'][$board['mover']];
+    $hash ^= $zobristValues['lastColour'][$board['lastColour']];
+    
+    foreach ($board['whitelocations'] as $piece => $location) {
+        $hash ^= $zobristValues['square'][$piece][$location['row']][$location['col']];
+    }
+
+    foreach ($board['blacklocations'] as $piece => $location) {
+        $hash ^= $zobristValues['square'][$piece][$location['row']][$location['col']];
+    }
+    
+    return $hash;
+}
 
 function run() {
     global $colours;
@@ -95,7 +135,7 @@ function getMoves($board) {
 
 function makeMove($board, $move)
 {
-    global $colours;
+    global $colours, $zobristValues;
 
     $colourIndex = $board['mover'] == 1 ? 'whitelocations' : 'blacklocations';
     foreach ($board[$colourIndex] as &$location) {
@@ -105,15 +145,30 @@ function makeMove($board, $move)
         }
     }
     
-    $board[$move['row']][$move['col']] = $board[$move['fromRow']][$move['fromCol']];
+    $piece = $board[$move['fromRow']][$move['fromCol']];
+    
+    $board['hash'] ^= $zobristValues['square'][$piece][$move['fromRow']][$move['fromCol']];
+    $board[$move['row']][$move['col']] = $piece;
+
+    $board['hash'] ^= $zobristValues['square'][$piece][$move['row']][$move['col']];
     $board[$move['fromRow']][$move['fromCol']] = '-';
+    
+    $board['hash'] ^= $zobristValues['mover'][1];
+    $board['hash'] ^= $zobristValues['mover'][2];
     $board['mover'] = $board['mover'] == 1 ? 2 : 1;
+    
+    $board['hash'] ^= $zobristValues['lastColour'][$board['lastColour']];
     $board['lastColour'] = $colours[$board['mover']][$move['row']][$move['col']];
+    $board['hash'] ^= $zobristValues['lastColour'][$board['lastColour']];
         
     return $board;
 }
 
-function negamax($board, $depth, $alpha, $beta, $maxDepth) {
+function negamax($board, $depth, $alpha, $beta, $maxDepth, $moveStartTime, $maxTime) {
+    
+    if (microtime(true) - $moveStartTime > $maxTime) {
+        return STATUS_GETOUT;    
+    }
     
     $bestMove = null;
     
@@ -145,7 +200,12 @@ function negamax($board, $depth, $alpha, $beta, $maxDepth) {
         }
                 
         $newBoard = makeMove($board, $move);
-        $result = negamax($newBoard, $depth + 1, -$beta, -$alpha, $maxDepth);
+        $result = negamax($newBoard, $depth + 1, -$beta, -$alpha, $maxDepth, $moveStartTime, $maxTime);
+        
+        if ($result == STATUS_GETOUT) {
+            return STATUS_GETOUT;
+        }
+        
         $score = -$result['score'];
 
         if ($score > $bestScore) {
@@ -201,6 +261,9 @@ function readBoard($input, &$colours) {
             $colours[2][$i][$j] = strtolower($colours[1][$i][$j]);
         }
     }
+    
+    setTranspositionTableValues();
+    $board['hash'] = calculateZobristHash($board);
 
     return $board;
 }
@@ -232,16 +295,49 @@ function printBoard($board) {
 
 function getBestMove($board) {
     
+    global $transpositionTable;
+    
+    $moveStartTime = microtime(true);
+    
+    $deepestResultSoFar = null;
+    
     $start = microtime(true);
     for ($depth = 3; $depth <= MAX_DEPTH; $depth ++) {
-        $result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, $depth);
-        $elapsed = microtime(true) - $start;
-        if ($elapsed > MAX_TIME || $depth == MAX_DEPTH) {
-            $result['depth'] = $depth;
-            $result['elapsed'] = $elapsed;
-            return $result;
+        $result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, $depth, $moveStartTime, MAX_TIME);
+        
+        if ($result == STATUS_GETOUT) {
+            return $deepestResultSoFar;
+        } else {
+            $elapsed = microtime(true) - $start;
+            $deepestResultSoFar = $result;
+            
+            $deepestResultSoFar['depth'] = $depth;
+            $deepestResultSoFar['elapsed'] = $elapsed;
+        
+            if ($elapsed > MAX_TIME || $depth == MAX_DEPTH) {
+                return $deepestResultSoFar;
+            }
         }
     }
+}
+
+function hashTest() {
+    global $colours;
+    
+    $board = readBoard('input.txt', $colours);
+    
+    echo $board['hash'] . PHP_EOL;
+    
+    $move = [
+        'fromRow' => 7,
+        'fromCol' => 7,
+        'row' => 1,
+        'col' => 1,
+    ];
+    
+    $board = makeMove($board, $move);
+    
+    echo $board['hash'] . PHP_EOL;
 }
 
 function test() {
@@ -264,7 +360,6 @@ function test() {
             
             echo "Move = " . ($moveCount + 1) . PHP_EOL;
             $result = getBestMove($board);
-            //$result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, $board['lastColour'] == '-' ? 3 : 7);
             
             echo "Time = " . number_format($result['elapsed'], 2);
             echo ' Depth = ' . $result['depth'];
