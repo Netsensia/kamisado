@@ -17,7 +17,6 @@ function run() {
 function isGameOver($board, $move) {
     $moves = getMoves($board);
     if (count($moves) == 0) {
-        printBoard($board);
         echo ($board['mover'] == 1 ? "Black" : "White") . " wins, opponent has no moves" . PHP_EOL;
         return true;
     }
@@ -113,14 +112,9 @@ function negamax($board, $depth, $alpha, $beta, $maxDepth) {
                 'move' => $move,
             ];
         }
-        
-        $lastColour = $board['lastColour'];
-        makeMove($board, $move);
-        $result = negamax($board, $depth + 1, -$beta, -$alpha, $maxDepth);
-        
-        unmakeMove($board, $move);
-        $board['lastColour'] = $lastColour;
-        
+                
+        $newBoard = makeMove($board, $move);
+        $result = negamax($newBoard, $depth + 1, -$beta, -$alpha, $maxDepth);
         $score = -$result['score'];
 
         if ($score > $bestScore) {
@@ -141,21 +135,18 @@ function negamax($board, $depth, $alpha, $beta, $maxDepth) {
     ];
 }
 
-function makeMove(&$board, $move)
+function makeMove($board, $move)
 {
     global $colours;
     
-    $board[$move['row']][$move['col']] = $board[$move['fromRow']][$move['fromCol']];
-    $board[$move['fromRow']][$move['fromCol']] = '-';
-    $board['mover'] = $board['mover'] == 1 ? 2 : 1;
-    $board['lastColour'] = $board['mover'] == 1 ? strtoupper($colours[$move['row']][$move['col']]) : strtolower($colours[$move['row']][$move['col']]);
-}
-
-function unmakeMove(&$board, $move)
-{
-    $board[$move['fromRow']][$move['fromCol']] = $board[$move['row']][$move['col']];
-    $board[$move['row']][$move['col']] = '-';
-    $board['mover'] = $board['mover'] == 1 ? 2 : 1;
+    $newBoard = $board;
+    
+    $newBoard[$move['row']][$move['col']] = $board[$move['fromRow']][$move['fromCol']];
+    $newBoard[$move['fromRow']][$move['fromCol']] = '-';
+    $newBoard['mover'] = $newBoard['mover'] == 1 ? 2 : 1;
+    $newBoard['lastColour'] = $newBoard['mover'] == 1 ? strtoupper($colours[$move['row']][$move['col']]) : strtolower($colours[$move['row']][$move['col']]);
+    
+    return $newBoard;
 }
 
 function moveToString($move) {
@@ -224,11 +215,11 @@ function test() {
                 throw new Exception('No move found for board');
             }
 
-            makeMove($board, $result['move']);
-            
+            $board = makeMove($board, $result['move']);
+
             $moveCount ++;
             echo '.';
-            
+
             if (isGameOver($board, $result['move'])) {
                 if ($board['mover'] == 2) {
                     $whiteWins ++;
