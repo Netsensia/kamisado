@@ -1,16 +1,21 @@
 <?php
 const VICTORY = 1000000;
 const MAX_DEPTH = 50;
-const MAX_TIME = 0.5;
 const STATUS_GETOUT = -1;
 
-$g_evaluationFunction = "evaluateZero";
+$g_evaluationFunction = "evaluate2";
 
 $colours = [];
 
 $globalBest = null;
 
-test();
+if (count($argv) > 1 && $argv[1] == 'test') {
+    $g_maxTime = 0.5;
+    test();
+} else {
+    $g_maxTime = 8;
+    run();
+}
 
 function run() {
     global $colours;
@@ -189,52 +194,26 @@ function evaluate($board) {
     
     $whiteScore = 0;
     
-    $currentMover = $board['mover'];
-    
-    $board['lastColour'] = '-';
-    $board['mover'] = 1;
-    $moves = getMoves($board);
-    foreach ($moves as $move) {
-        if ($move['row'] == 0) {
-            if ($currentMover == 1) {
-                return VICTORY;
+    for ($col=0; $col<8; $col++) {
+        for ($row=0, $blocked=false; $row<8 && !$blocked; $row++) {
+            $piece = $board[$row][$col];
+            if ($piece != '-') {
+                $blocked = true;
+                if ($board[$row][$col] <= 'Z') {
+                    $whiteScore ++;
+                }
             }
-            $whiteScore ++;
+        }
+        for ($row=7, $blocked=false; $row>=0 && !$blocked; $row--) {
+            $piece = $board[$row][$col];
+            if ($piece != '-') {
+                $blocked = true;
+                if ($board[$row][$col] >= 'a') {
+                    $whiteScore --;
+                }
+            }
         }
     }
-    
-    $board['mover'] = 2;
-    $moves = getMoves($board);
-    foreach ($moves as $move) {
-        if ($move['row'] == 7) {
-            if ($currentMover == 2) {
-                return VICTORY;
-            }
-            $whiteScore --;
-        }
-    }
-    
-    
-//     for ($col=0; $col<8; $col++) {
-//         for ($row=0, $blocked=false; $row<8 && !$blocked; $row++) {
-//             $piece = $board[$row][$col];
-//             if ($piece != '-') {
-//                 $blocked = true;
-//                 if ($board[$row][$col] <= 'Z') {
-//                     $whiteScore ++;
-//                 }
-//             }
-//         }
-//         for ($row=7, $blocked=false; $row>=0 && !$blocked; $row--) {
-//             $piece = $board[$row][$col];
-//             if ($piece != '-') {
-//                 $blocked = true;
-//                 if ($board[$row][$col] >= 'a') {
-//                     $whiteScore --;
-//                 }
-//             }
-//         }
-//     }
     
     if ($board['mover'] == 1) {
         return $whiteScore;
@@ -381,7 +360,7 @@ function printBoard($board) {
 
 function getBestMove($board) {
     
-    global $globalBest;
+    global $globalBest, $g_maxTime;
     
     $moveStartTime = microtime(true);
     
@@ -390,7 +369,7 @@ function getBestMove($board) {
     $start = microtime(true);
     
     for ($depth = 1; $depth <= MAX_DEPTH; $depth ++) {
-        $result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, $depth, $moveStartTime, MAX_TIME);
+        $result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, $depth, $moveStartTime, $g_maxTime);
         
         if ($result == -1 && $depth == 1) {
             throw new Exception("No move could be found in time");
@@ -405,7 +384,7 @@ function getBestMove($board) {
             $deepestResultSoFar['depth'] = $depth;
             $deepestResultSoFar['elapsed'] = $elapsed;
         
-            if ($elapsed > MAX_TIME || $depth == MAX_DEPTH) {
+            if ($elapsed > $g_maxTime || $depth == MAX_DEPTH) {
                 return $deepestResultSoFar;
             }
         }
@@ -435,7 +414,7 @@ function test() {
             if ($moveCount % 2 == 0) {
                 $g_evaluationFunction = "evaluate2";
             } else {
-                $g_evaluationFunction = "evaluate";
+                $g_evaluationFunction = "evaluateZero";
             }
             
             $t = microtime(true);
