@@ -393,7 +393,7 @@ function getBestMove($board) {
 
 function test() {
     global $colours;
-    global $g_evaluationFunction, $g_nodes;
+    global $g_evaluationFunction, $g_nodes, $g_maxTime;
     
     $board = readBoard('input.txt', $colours);
     
@@ -407,7 +407,10 @@ function test() {
         
         $board = $originalBoard;
         echo "GAME " . ($i + 1) . PHP_EOL;
-
+        $g_maxTime = 0.1 + (($i % 20) / 10);
+        
+        echo "Max time = " . $g_maxTime . PHP_EOL;
+        
         $moveCount = 0;
         do {
             
