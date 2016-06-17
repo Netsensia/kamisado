@@ -7,6 +7,7 @@ function test() {
     $board = readBoard('input.txt', $colours);
 
     $whiteWins = 0;
+    $testWins = 0;
     $draws = 0;
     $originalBoard = $board;
 
@@ -20,13 +21,21 @@ function test() {
 
         echo "Max time = " . $g_maxTime . PHP_EOL;
 
+        if ($i % 2 == 0) {
+            $whiteEvaluationFunction = "evaluate";
+            $blackEvaluationFunction = "evaluateTest";
+        } else {
+            $whiteEvaluationFunction = "evaluateTest";
+            $blackEvaluationFunction = "evaluate";
+        }
+        
         $moveCount = 0;
         do {
 
             if ($moveCount % 2 == 0) {
-                $g_evaluationFunction = "evaluateTest";
+                $g_evaluationFunction = $whiteEvaluationFunction;
             } else {
-                $g_evaluationFunction = "evaluate";
+                $g_evaluationFunction = $blackEvaluationFunction;
             }
 
             $t = microtime(true);
@@ -60,6 +69,13 @@ function test() {
                 if ($moveCount > 6) {
                     if ($board['mover'] == 2) {
                         $whiteWins ++;
+                        if ($whiteEvaluationFunction == "evaluateTest") {
+                            $testWins ++;
+                        }
+                    } else {
+                        if ($blackEvaluationFunction == "evaluateTest") {
+                            $testWins ++;
+                        }
                     }
                 } else {
                     $draws ++;
@@ -73,14 +89,29 @@ function test() {
         $totalMoves += $moveCount;
         $totalPlayed = $i + 1;
         $nonDraws = $totalPlayed - $draws;
+        echo "Games played = " . $totalPlayed . PHP_EOL;
         echo "Draws = " . $draws . ' (' . number_format(100 * ($draws / $totalPlayed)) . '% of all games)' . PHP_EOL;
         echo "Moves made = " . $moveCount . PHP_EOL;
         if ($nonDraws > 0) {
             echo "White wins = " . $whiteWins . ' (' . number_format(100 * ($whiteWins / $nonDraws), 2) . '% of ' . $nonDraws . ' non draws)' . PHP_EOL;
+            echo "Test function wins = " . $testWins . ' (' . number_format(100 * ($testWins / $nonDraws), 2) . '% of ' . $nonDraws . ' non draws)' . PHP_EOL;
         }
         echo str_pad('', 60, '-') . PHP_EOL;
 
     }
+}
+
+function isGameOver($board, $move) {
+    $moves = getMoves($board);
+    if (count($moves) == 0) {
+        echo ($board['mover'] == 1 ? "Black" : "White") . " wins, opponent has no moves" . PHP_EOL;
+        return true;
+    }
+    if ($move['row'] == 0 || $move['row'] == 7) {
+        echo ($board['mover'] == 1 ? "Black" : "White") . " wins, reached final rank" . PHP_EOL;
+        return true;
+    }
+    return false;
 }
 
 function printBoard($board) {

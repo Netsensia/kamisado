@@ -31,19 +31,6 @@ function run() {
     echo PHP_EOL;
 }
 
-function isGameOver($board, $move) {
-    $moves = getMoves($board);
-    if (count($moves) == 0) {
-        echo ($board['mover'] == 1 ? "Black" : "White") . " wins, opponent has no moves" . PHP_EOL;
-        return true;
-    }
-    if ($move['row'] == 0 || $move['row'] == 7) {
-        echo ($board['mover'] == 1 ? "Black" : "White") . " wins, reached final rank" . PHP_EOL;
-        return true;
-    }
-    return false;
-}
-
 function getMoves($board) {
     
     global $globalBest;
@@ -143,13 +130,14 @@ function makeMove($board, $move)
 function evaluate($board) {
     
     $whiteScore = 0;
-    
+
     $currentMover = $board['mover'];
-    
+    $lastColour = $board['lastColour'];
+
     foreach ($board['whitelocations'] as $piece => $location) {
         $col = $location['col'];
         $row = $location['row'];
-    
+
         $found = false;
         foreach ([0,-1,1] as $xDir) {
             if ($found) {
@@ -158,6 +146,9 @@ function evaluate($board) {
             for ($y=$row-1, $x=$col+$xDir; isset($board[$y][$x]) && $board[$y][$x] == '-'; $y--, $x+=$xDir) {
                 if ($y == 0) {
                     $found = true;
+                    if ($currentMover == 1 && $lastColour == $piece) {
+                        return VICTORY;
+                    }
                     $whiteScore ++;
                     break;
                 }
@@ -176,6 +167,9 @@ function evaluate($board) {
             }
             for ($y=$row+1, $x=$col+$xDir; isset($board[$y][$x]) && $board[$y][$x] == '-'; $y++, $x+=$xDir) {
                 if ($y == 7) {
+                    if ($currentMover == 2 && $lastColour == $piece) {
+                        return VICTORY;
+                    }
                     $found = true;
                     $whiteScore --;
                     break;
@@ -183,7 +177,7 @@ function evaluate($board) {
             }
         }
     }
-    
+
     if ($board['mover'] == 1) {
         return $whiteScore;
     } else {
