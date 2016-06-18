@@ -17,7 +17,7 @@ function test() {
 
         $board = $originalBoard;
         echo "GAME " . ($i + 1) . PHP_EOL;
-        $g_maxTime = 0.1 + (($i % 5) / 10);
+        $g_maxTime = 0.1 + (($i % 30) / 10);
 
         echo "Max time = " . $g_maxTime . PHP_EOL;
 
@@ -44,54 +44,38 @@ function test() {
             $t = microtime(true);
 
             $g_nodes = 0;
-            if ($moveCount < 4) {
-                $moves = getMoves($board);
-                if (count($moves) == 0) {
-                    throw new Exception('No move found for board');
-                }
 
-                $r = rand(0, count($moves)-1);
-                $move = $moves[$r];
-                $depth = 0;
-            } else {
-                if ($g_evaluationFunction == 'evaluateTest') {
-                    $result = getBestMoveTest($board);
-//                    echo "Move to play = " . moveToString($result['move']) . PHP_EOL;
-//                     $tempResult = getBestMoveDebug($board);
-//                     echo "Other function makes " . moveToString($tempResult['move']) . ' at depth ' . $tempResult['depth'] . PHP_EOL;
-//                     if (moveToString($tempResult['move']) != moveToString($result['move'])) {
-//                         die;
-//                     }
+            if ($g_evaluationFunction == 'evaluateTest') {
+                if ($moveCount == 0) {
+                    $result = getOpeningMove();
                 } else {
-                    $result = getBestMove($board);
+                    $result = getBestMoveTest($board);
                 }
-
-                if ($result['move'] == null) {
-                    throw new Exception('No move found for board');
-                }
-
-                $move = $result['move'];
-                $depth = $result['depth'];
+            } else {
+                $result = getBestMove($board);
             }
 
-            //echo str_pad($g_evaluationFunction, 13) . " reached depth " . $depth . ", evaluation " . $g_nodes . " positions" . PHP_EOL;
+            if ($result['move'] == null) {
+                throw new Exception('No move found for board');
+            }
+
+            $move = $result['move'];
+            $depth = $result['depth'];
+
+            echo str_pad($g_evaluationFunction, 13) . " reached depth " . $depth . ", evaluation " . $g_nodes . " positions" . PHP_EOL;
             $board = makeMove($board, $move);
             $moveCount ++;
 
             if (isGameOver($board, $move)) {
-                if ($moveCount > 6) {
-                    if ($board['mover'] == 2) {
-                        $whiteWins ++;
-                        if ($whiteEvaluationFunction == "evaluateTest") {
-                            $testWins ++;
-                        }
-                    } else {
-                        if ($blackEvaluationFunction == "evaluateTest") {
-                            $testWins ++;
-                        }
+                if ($board['mover'] == 2) {
+                    $whiteWins ++;
+                    if ($whiteEvaluationFunction == "evaluateTest") {
+                        $testWins ++;
                     }
                 } else {
-                    $draws ++;
+                    if ($blackEvaluationFunction == "evaluateTest") {
+                        $testWins ++;
+                    }
                 }
                 break;
             }
@@ -349,3 +333,32 @@ function getBestMoveDebug($board) {
     }
 }
 
+function getOpeningMove() {
+    $openingMoves = [
+        ['fromRow' => 7, 'fromCol' => 0, 'row' => 6, 'col' => 0],
+        ['fromRow' => 7, 'fromCol' => 0, 'row' => 3, 'col' => 0],
+        ['fromRow' => 7, 'fromCol' => 1, 'row' => 1, 'col' => 1],
+        ['fromRow' => 7, 'fromCol' => 1, 'row' => 2, 'col' => 1],
+        ['fromRow' => 7, 'fromCol' => 2, 'row' => 1, 'col' => 2],
+        ['fromRow' => 7, 'fromCol' => 2, 'row' => 4, 'col' => 2],
+        ['fromRow' => 7, 'fromCol' => 3, 'row' => 2, 'col' => 3],
+        ['fromRow' => 7, 'fromCol' => 3, 'row' => 3, 'col' => 3],
+        ['fromRow' => 7, 'fromCol' => 4, 'row' => 2, 'col' => 4],
+        ['fromRow' => 7, 'fromCol' => 4, 'row' => 3, 'col' => 4],
+        ['fromRow' => 7, 'fromCol' => 5, 'row' => 1, 'col' => 5],
+        ['fromRow' => 7, 'fromCol' => 5, 'row' => 4, 'col' => 5],
+        ['fromRow' => 7, 'fromCol' => 6, 'row' => 1, 'col' => 6],
+        ['fromRow' => 7, 'fromCol' => 6, 'row' => 2, 'col' => 6],
+        ['fromRow' => 7, 'fromCol' => 7, 'row' => 3, 'col' => 7],
+        ['fromRow' => 7, 'fromCol' => 7, 'row' => 6, 'col' => 7],
+    ];
+    
+    $openingMoveNumber = rand(0,15);
+    
+    return [
+        'score' => VICTORY,
+        'move' => $openingMoves[$openingMoveNumber],
+        'depth' => 0,
+        'elapsed' => 0,
+    ];
+}
