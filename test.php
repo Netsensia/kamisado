@@ -29,6 +29,9 @@ function test() {
             $blackEvaluationFunction = "evaluate";
         }
         
+        echo "White evaluation function = $whiteEvaluationFunction" . PHP_EOL;
+        echo "Black evaluation function = $blackEvaluationFunction" . PHP_EOL;
+        
         $moveCount = 0;
         do {
 
@@ -51,7 +54,11 @@ function test() {
                 $move = $moves[$r];
                 $depth = 0;
             } else {
-                $result = getBestMove($board);
+                if ($g_evaluationFunction == 'evaluateTest') {
+                    $result = getBestMoveTest($board);
+                } else {
+                    $result = getBestMove($board);
+                }
 
                 if ($result['move'] == null) {
                     throw new Exception('No move found for board');
@@ -234,4 +241,56 @@ function evaluateTest2($board) {
     }
 }
 
+function getBestMoveTest($board) {
+
+    global $g_maxTime;
+
+    $moveStartTime = microtime(true);
+
+    $deepestResultSoFar = null;
+
+    $start = microtime(true);
+    
+    $moves = getMoves($board);
+
+    $deepestResultSoFar = [
+        'move' => $moves[0],
+        'score' => 0,
+        'depth' => -1,
+        'elapsed' => 0,
+    ];
+    
+    for ($depth = 1; $depth <= MAX_DEPTH; $depth ++) {
+        
+        $bestScore = -PHP_INT_MAX;
+        
+        for ($i=0; $i<count($moves); $i++) {
+            $board = makeMove($board, $moves[$i]);
+            $result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, $depth, $moveStartTime, $g_maxTime);
+            
+            if ($result == STATUS_GETOUT) {
+                return $deepestResultSoFar;
+            }
+            
+            $elapsed = microtime(true) - $start;
+            
+            $moves[$i]['score'] = -$result['score'];
+            
+            if ($moves[$i]['score'] > $bestScore) {
+                $deepestResultSoFar['move'] = $moves[$i];
+                $deepestResultSoFar['depth'] = $depth;
+                $deepestResultSoFar['elapsed'] = $elapsed;
+            }
+            
+            if ($elapsed > $g_maxTime || $depth == MAX_DEPTH) {
+                return $deepestResultSoFar;
+            }
+        }
+        
+        usort($moves, function($a, $b) {
+              return $a['score'] > $b['score'] ? -1 :
+                     ($a['score'] < $b['score'] ? 1 : 0);
+        });
+    }
+}
 

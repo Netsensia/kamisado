@@ -10,8 +10,6 @@ const STATUS_GETOUT = -1;
 
 $colours = [];
 
-$globalBest = null;
-
 if (count($argv) > 1 && $argv[1] == 'test') {
     $g_maxTime = 0.5;
     test();
@@ -33,7 +31,7 @@ function run() {
 
 function getMoves($board) {
     
-    global $globalBest;
+    global $g_evaluationFunction;
     
     $moves = [];
     
@@ -80,23 +78,11 @@ function getMoves($board) {
     }
 
     if ($board['mover'] == 1) {
-        usort($moves, function ($a, $b) use ($globalBest) {
-            if ($globalBest == $a) {
-                return -1;
-            }
-            if ($globalBest == $b) {
-                return 1;
-            }
+        usort($moves, function ($a, $b) {
             return $a['row'] < $b['row'] ? -1 : ($a['row'] == $b['row'] ? 0 : 1);
         });
     } else {
-        usort($moves, function ($a, $b) use ($globalBest) {
-            if ($globalBest == $a) {
-                return -1;
-            }
-            if ($globalBest == $b) {
-                return 1;
-            }
+        usort($moves, function ($a, $b) {
             return $a['row'] > $b['row'] ? -1 : ($a['row'] == $b['row'] ? 0 : 1);
         });
     }
@@ -299,7 +285,7 @@ function readBoard($input, &$colours) {
 
 function getBestMove($board) {
     
-    global $globalBest, $g_maxTime;
+    global $g_maxTime;
     
     $moveStartTime = microtime(true);
     
@@ -318,7 +304,6 @@ function getBestMove($board) {
         } else {
             $elapsed = microtime(true) - $start;
             $deepestResultSoFar = $result;
-            $globalBest = $result['move'];
             
             $deepestResultSoFar['depth'] = $depth;
             $deepestResultSoFar['elapsed'] = $elapsed;
