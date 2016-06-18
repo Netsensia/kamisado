@@ -11,7 +11,6 @@ const STATUS_GETOUT = -1;
 $colours = [];
 
 if (count($argv) > 1 && $argv[1] == 'test') {
-    $g_maxTime = 0.5;
     test();
 } else {
     $g_maxTime = 8.5;

@@ -17,7 +17,7 @@ function test() {
 
         $board = $originalBoard;
         echo "GAME " . ($i + 1) . PHP_EOL;
-        $g_maxTime = 0.1 + (($i % 20) / 10);
+        $g_maxTime = 0.1 + (($i % 5) / 10);
 
         echo "Max time = " . $g_maxTime . PHP_EOL;
 
@@ -56,6 +56,12 @@ function test() {
             } else {
                 if ($g_evaluationFunction == 'evaluateTest') {
                     $result = getBestMoveTest($board);
+//                    echo "Move to play = " . moveToString($result['move']) . PHP_EOL;
+//                     $tempResult = getBestMoveDebug($board);
+//                     echo "Other function makes " . moveToString($tempResult['move']) . ' at depth ' . $tempResult['depth'] . PHP_EOL;
+//                     if (moveToString($tempResult['move']) != moveToString($result['move'])) {
+//                         die;
+//                     }
                 } else {
                     $result = getBestMove($board);
                 }
@@ -68,7 +74,7 @@ function test() {
                 $depth = $result['depth'];
             }
 
-            echo (($moveCount % 2 == 0) ? "White" : "Black") . " reached depth " . $depth . ", evaluation " . $g_nodes . " positions" . PHP_EOL;
+            //echo str_pad($g_evaluationFunction, 13) . " reached depth " . $depth . ", evaluation " . $g_nodes . " positions" . PHP_EOL;
             $board = makeMove($board, $move);
             $moveCount ++;
 
@@ -252,10 +258,20 @@ function getBestMoveTest($board) {
     $start = microtime(true);
     
     $moves = getMoves($board);
+    
+    foreach ($moves as $move) {
+        if ($move['row'] == 0 || $move['row'] == 7) {
+            return [
+                'score' => VICTORY,
+                'move' => $move,
+                'depth' => 0,
+                'elapsed' => microtime(true) - $start,
+            ];
+        }
+    }
 
     $deepestResultSoFar = [
         'move' => $moves[0],
-        'score' => 0,
         'depth' => -1,
         'elapsed' => 0,
     ];
@@ -265,8 +281,9 @@ function getBestMoveTest($board) {
         $bestScore = -PHP_INT_MAX;
         
         for ($i=0; $i<count($moves); $i++) {
-            $board = makeMove($board, $moves[$i]);
-            $result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, $depth, $moveStartTime, $g_maxTime);
+            
+            $newBoard = makeMove($board, $moves[$i]);
+            $result = negamax($newBoard, 1, -PHP_INT_MAX, -$bestScore, $depth, $moveStartTime, $g_maxTime);
             
             if ($result == STATUS_GETOUT) {
                 return $deepestResultSoFar;
@@ -277,6 +294,7 @@ function getBestMoveTest($board) {
             $moves[$i]['score'] = -$result['score'];
             
             if ($moves[$i]['score'] > $bestScore) {
+                $bestScore = $moves[$i]['score'];
                 $deepestResultSoFar['move'] = $moves[$i];
                 $deepestResultSoFar['depth'] = $depth;
                 $deepestResultSoFar['elapsed'] = $elapsed;
@@ -285,12 +303,49 @@ function getBestMoveTest($board) {
             if ($elapsed > $g_maxTime || $depth == MAX_DEPTH) {
                 return $deepestResultSoFar;
             }
+            
         }
         
         usort($moves, function($a, $b) {
               return $a['score'] > $b['score'] ? -1 :
                      ($a['score'] < $b['score'] ? 1 : 0);
         });
+        
+        assert($bestScore == $moves[0]['score']);
+        
+    }
+    
+}
+
+function getBestMoveDebug($board) {
+
+    global $g_maxTime;
+
+    $moveStartTime = microtime(true);
+
+    $deepestResultSoFar = null;
+
+    $start = microtime(true);
+
+    for ($depth = 1; $depth <= MAX_DEPTH; $depth ++) {
+        $result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, $depth, $moveStartTime, $g_maxTime);
+
+        if ($result == -1 && $depth == 1) {
+            throw new Exception("No move could be found in time");
+        }
+        if ($result == STATUS_GETOUT) {
+            return $deepestResultSoFar;
+        } else {
+            $elapsed = microtime(true) - $start;
+            $deepestResultSoFar = $result;
+
+            $deepestResultSoFar['depth'] = $depth;
+            $deepestResultSoFar['elapsed'] = $elapsed;
+
+            if ($elapsed > $g_maxTime || $depth == MAX_DEPTH) {
+                return $deepestResultSoFar;
+            }
+        }
     }
 }
 
