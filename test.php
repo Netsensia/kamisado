@@ -62,7 +62,7 @@ function test() {
             $move = $result['move'];
             $depth = $result['depth'];
 
-            echo str_pad($g_evaluationFunction, 13) . " reached depth " . $depth . ", evaluation " . $g_nodes . " positions" . PHP_EOL;
+            echo str_pad($g_evaluationFunction, 13) . " reached depth " . $depth . ", evaluating " . $g_nodes . " positions" . PHP_EOL;
             $board = makeMove($board, $move);
             $moveCount ++;
 
@@ -331,34 +331,4 @@ function getBestMoveDebug($board) {
             }
         }
     }
-}
-
-function getOpeningMove() {
-    $openingMoves = [
-        ['fromRow' => 7, 'fromCol' => 0, 'row' => 6, 'col' => 0],
-        ['fromRow' => 7, 'fromCol' => 0, 'row' => 3, 'col' => 0],
-        ['fromRow' => 7, 'fromCol' => 1, 'row' => 1, 'col' => 1],
-        ['fromRow' => 7, 'fromCol' => 1, 'row' => 2, 'col' => 1],
-        ['fromRow' => 7, 'fromCol' => 2, 'row' => 1, 'col' => 2],
-        ['fromRow' => 7, 'fromCol' => 2, 'row' => 4, 'col' => 2],
-        ['fromRow' => 7, 'fromCol' => 3, 'row' => 2, 'col' => 3],
-        ['fromRow' => 7, 'fromCol' => 3, 'row' => 3, 'col' => 3],
-        ['fromRow' => 7, 'fromCol' => 4, 'row' => 2, 'col' => 4],
-        ['fromRow' => 7, 'fromCol' => 4, 'row' => 3, 'col' => 4],
-        ['fromRow' => 7, 'fromCol' => 5, 'row' => 1, 'col' => 5],
-        ['fromRow' => 7, 'fromCol' => 5, 'row' => 4, 'col' => 5],
-        ['fromRow' => 7, 'fromCol' => 6, 'row' => 1, 'col' => 6],
-        ['fromRow' => 7, 'fromCol' => 6, 'row' => 2, 'col' => 6],
-        ['fromRow' => 7, 'fromCol' => 7, 'row' => 3, 'col' => 7],
-        ['fromRow' => 7, 'fromCol' => 7, 'row' => 6, 'col' => 7],
-    ];
-    
-    $openingMoveNumber = rand(0,15);
-    
-    return [
-        'score' => VICTORY,
-        'move' => $openingMoves[$openingMoveNumber],
-        'depth' => 0,
-        'elapsed' => 0,
-    ];
 }

@@ -14,7 +14,7 @@ if (count($argv) > 1 && $argv[1] == 'test') {
     test();
 } else {
     $g_maxTime = 8.5;
-    $g_evaluationFunction = "evaluate2";
+    $g_evaluationFunction = "evaluate";
     run();
 }
 
@@ -23,7 +23,11 @@ function run() {
     
     $board = readBoard('php://stdin', $colours);
     
-    $result = getBestMove($board);
+    if ($board['lastColour'] == '-') {
+        $result = getOpeningMove();
+    } else {
+        $result = getBestMove($board);
+    }
     echo moveToString($result['move']);
     echo PHP_EOL;
 }
@@ -312,4 +316,27 @@ function getBestMove($board) {
             }
         }
     }
+}
+
+
+function getOpeningMove() {
+    $openingMoves = [
+        ['fromRow' => 7, 'fromCol' => 0, 'row' => 3, 'col' => 0],
+        ['fromRow' => 7, 'fromCol' => 1, 'row' => 1, 'col' => 1],
+        ['fromRow' => 7, 'fromCol' => 3, 'row' => 2, 'col' => 3],
+        ['fromRow' => 7, 'fromCol' => 3, 'row' => 3, 'col' => 3],
+        ['fromRow' => 7, 'fromCol' => 4, 'row' => 2, 'col' => 4],
+        ['fromRow' => 7, 'fromCol' => 4, 'row' => 3, 'col' => 4],
+        ['fromRow' => 7, 'fromCol' => 6, 'row' => 1, 'col' => 6],
+        ['fromRow' => 7, 'fromCol' => 7, 'row' => 3, 'col' => 7],
+    ];
+
+    $openingMoveNumber = rand(0,count($openingMoves)-1);
+
+    return [
+        'score' => VICTORY,
+        'move' => $openingMoves[$openingMoveNumber],
+        'depth' => 0,
+        'elapsed' => 0,
+    ];
 }
