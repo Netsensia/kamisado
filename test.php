@@ -47,12 +47,16 @@ function test() {
 
             if ($g_evaluationFunction == 'evaluateTest') {
                 if ($moveCount == 0) {
-                    $result = getOpeningMove();
+                    $result = getOpeningMoveTest();
                 } else {
-                    $result = getBestMoveTest($board);
+                    $result = getBestMove($board);
                 }
             } else {
-                $result = getBestMove($board);
+                if ($moveCount == 0) {
+                    $result = getOpeningMoveTest();
+                } else {
+                    $result = getBestMove($board);
+                }
             }
 
             if ($result['move'] == null) {
@@ -146,7 +150,7 @@ function evaluateTest($board) {
 
     $currentMover = $board['mover'];
     $lastColour = $board['lastColour'];
-
+    
     foreach ($board['whitelocations'] as $piece => $location) {
         $col = $location['col'];
         $row = $location['row'];
@@ -162,7 +166,7 @@ function evaluateTest($board) {
                     if ($currentMover == 1 && $lastColour == $piece) {
                         return VICTORY;
                     }
-                    $whiteScore ++;
+                    $whiteScore += 100;
                     break;
                 }
             }
@@ -184,14 +188,18 @@ function evaluateTest($board) {
                         return VICTORY;
                     }
                     $found = true;
-                    $whiteScore --;
+                    $whiteScore -= 100;
                     break;
                 }
             }
         }
     }
-
-    if ($board['mover'] == 1) {
+    
+    if (count(getMoves($board)) == 0) {
+        return -VICTORY;
+    }
+    
+    if ($currentMover == 1) {
         return $whiteScore;
     } else {
         return -$whiteScore;
@@ -284,9 +292,10 @@ function getBestMoveTest($board) {
                 $deepestResultSoFar['elapsed'] = $elapsed;
             }
             
-            if ($elapsed > $g_maxTime || $depth == MAX_DEPTH) {
+            if ($elapsed > $g_maxTime || $depth == MAX_DEPTH || $bestScore == VICTORY) {
                 return $deepestResultSoFar;
             }
+            
             
         }
         
@@ -297,38 +306,32 @@ function getBestMoveTest($board) {
         
         assert($bestScore == $moves[0]['score']);
         
+        if ($bestScore == -VICTORY) {
+            return $deepestResultSoFar;
+        }
+        
     }
     
 }
 
-function getBestMoveDebug($board) {
+function getOpeningMoveTest() {
+    $openingMoves = [
+        ['fromRow' => 7, 'fromCol' => 0, 'row' => 3, 'col' => 0],
+        ['fromRow' => 7, 'fromCol' => 1, 'row' => 1, 'col' => 1],
+        ['fromRow' => 7, 'fromCol' => 3, 'row' => 2, 'col' => 3],
+        ['fromRow' => 7, 'fromCol' => 3, 'row' => 3, 'col' => 3],
+        ['fromRow' => 7, 'fromCol' => 4, 'row' => 2, 'col' => 4],
+        ['fromRow' => 7, 'fromCol' => 4, 'row' => 3, 'col' => 4],
+        ['fromRow' => 7, 'fromCol' => 6, 'row' => 1, 'col' => 6],
+        ['fromRow' => 7, 'fromCol' => 7, 'row' => 3, 'col' => 7],
+    ];
 
-    global $g_maxTime;
+    $openingMoveNumber = rand(0,count($openingMoves)-1);
 
-    $moveStartTime = microtime(true);
-
-    $deepestResultSoFar = null;
-
-    $start = microtime(true);
-
-    for ($depth = 1; $depth <= MAX_DEPTH; $depth ++) {
-        $result = negamax($board, 0, -PHP_INT_MAX, PHP_INT_MAX, $depth, $moveStartTime, $g_maxTime);
-
-        if ($result == -1 && $depth == 1) {
-            throw new Exception("No move could be found in time");
-        }
-        if ($result == STATUS_GETOUT) {
-            return $deepestResultSoFar;
-        } else {
-            $elapsed = microtime(true) - $start;
-            $deepestResultSoFar = $result;
-
-            $deepestResultSoFar['depth'] = $depth;
-            $deepestResultSoFar['elapsed'] = $elapsed;
-
-            if ($elapsed > $g_maxTime || $depth == MAX_DEPTH) {
-                return $deepestResultSoFar;
-            }
-        }
-    }
+    return [
+        'score' => VICTORY,
+        'move' => $openingMoves[$openingMoveNumber],
+        'depth' => 0,
+        'elapsed' => 0,
+    ];
 }
