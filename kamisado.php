@@ -8,13 +8,14 @@ const VICTORY = 1000000;
 const MAX_DEPTH = 50;
 const STATUS_GETOUT = -1;
 
+$g_evaluationFunction = "evaluate";
+
 $colours = [];
 
 if (count($argv) > 1 && $argv[1] == 'test') {
     test();
 } else {
     $g_maxTime = 8.5;
-    $g_evaluationFunction = "evaluate";
     run();
 }
 
@@ -23,9 +24,8 @@ function run() {
     
     $board = readBoard('php://stdin', $colours);
     
-    if ($board['lastColour'] == '-') {
-        $result = getOpeningMove();
-    } else {
+    $result = getOpeningMove($board);
+    if ($result == null) {
         $result = getBestMove($board);
     }
     echo moveToString($result['move']);
@@ -360,25 +360,72 @@ function getBestMove($board) {
     }
 }
 
+function boardToString($board) {
+    $s = '';
+    for ($i=0; $i<8; $i++) {
+        for ($j=0; $j<8; $j++) {
+            $s .= $board[$i][$j];
+        }
+    }
 
-function getOpeningMove() {
-    $openingMoves = [
-        ['fromRow' => 7, 'fromCol' => 0, 'row' => 3, 'col' => 0],
-        ['fromRow' => 7, 'fromCol' => 1, 'row' => 1, 'col' => 1],
-        ['fromRow' => 7, 'fromCol' => 3, 'row' => 2, 'col' => 3],
-        ['fromRow' => 7, 'fromCol' => 3, 'row' => 3, 'col' => 3],
-        ['fromRow' => 7, 'fromCol' => 4, 'row' => 2, 'col' => 4],
-        ['fromRow' => 7, 'fromCol' => 4, 'row' => 3, 'col' => 4],
-        ['fromRow' => 7, 'fromCol' => 6, 'row' => 1, 'col' => 6],
-        ['fromRow' => 7, 'fromCol' => 7, 'row' => 3, 'col' => 7],
+    $s .= $board['lastColour'];
+
+    return $s;
+}
+
+function getOpeningMove($board) {
+    $library = [
+        'olmpyrgb------------------------------------------------BGRYPMLO-' => [
+            ['fromRow' => 7, 'fromCol' => 0, 'row' => 3, 'col' => 0],
+            ['fromRow' => 7, 'fromCol' => 1, 'row' => 1, 'col' => 1],
+            ['fromRow' => 7, 'fromCol' => 3, 'row' => 2, 'col' => 3],
+            ['fromRow' => 7, 'fromCol' => 3, 'row' => 3, 'col' => 3],
+            ['fromRow' => 7, 'fromCol' => 4, 'row' => 2, 'col' => 4],
+            ['fromRow' => 7, 'fromCol' => 4, 'row' => 3, 'col' => 4],
+            ['fromRow' => 7, 'fromCol' => 6, 'row' => 1, 'col' => 6],
+            ['fromRow' => 7, 'fromCol' => 7, 'row' => 3, 'col' => 7],
+        ],
+        'olmpyrgb----------------B--------------------------------GRYPMLOp' => [
+            ['fromRow' => 0, 'fromCol' => 3, 'row' => 5, 'col' => 3],
+        ],
+        'olmpyrgb-G----------------------------------------------B-RYPMLOo' => [
+            ['fromRow' => 0, 'fromCol' => 0, 'row' => 5, 'col' => 0],
+        ],
+        'olmpyrgb-----------Y------------------------------------BGR-PMLOr' => [
+            ['fromRow' => 0, 'fromCol' => 5, 'row' => 5, 'col' => 5],
+        ],
+        'olmpyrgb-------------------Y----------------------------BGR-PMLOo' => [
+            ['fromRow' => 0, 'fromCol' => 0, 'row' => 2, 'col' => 0],
+        ],
+        'olmpyrgb------------P-----------------------------------BGRY-MLOm' => [
+            ['fromRow' => 0, 'fromCol' => 2, 'row' => 5, 'col' => 2],
+        ],
+        'olmpyrgb--------------------P---------------------------BGRY-MLOb' => [
+            ['fromRow' => 0, 'fromCol' => 7, 'row' => 2, 'col' => 7],
+        ],
+        'olmpyrgb------L-----------------------------------------BGRYPM-Ob' => [
+            ['fromRow' => 0, 'fromCol' => 7, 'row' => 5, 'col' => 7],
+        ],
+        'olmpyrgb-----------------------O------------------------BGRYPML-y' => [
+            ['fromRow' => 0, 'fromCol' => 4, 'row' => 5, 'col' => 4],
+        ],
     ];
-
-    $openingMoveNumber = rand(0,count($openingMoves)-1);
-
-    return [
-        'score' => VICTORY,
-        'move' => $openingMoves[$openingMoveNumber],
-        'depth' => 0,
-        'elapsed' => 0,
-    ];
+    
+    $boardString = boardToString($board);
+    
+    if (isset($library[$boardString])) {
+    
+        $openingMoves = $library[$boardString];
+        
+        $openingMoveNumber = rand(0,count($openingMoves)-1);
+        
+        return [
+            'score' => VICTORY,
+            'move' => $openingMoves[$openingMoveNumber],
+            'depth' => 0,
+            'elapsed' => 0,
+        ];
+    }
+    
+    return null;
 }

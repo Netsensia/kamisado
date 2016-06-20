@@ -5,7 +5,7 @@ function test() {
     global $g_evaluationFunction, $g_nodes, $g_maxTime;
 
     $board = readBoard('input.txt', $colours);
-
+    
     $whiteWins = 0;
     $testWins = 0;
     $testWinsAsWhite = 0;
@@ -52,19 +52,19 @@ function test() {
             $g_nodes = 0;
 
             if ($g_evaluationFunction == 'evaluateTest') {
-                $g_maxTime = 5 * (0.1 + (($i % 30) / 10));
-                
-                if ($moveCount == 0) {
-                    $result = getOpeningMoveTest();
-                } else {
+                $g_evaluationFunction = "evaluate";
+                $result = getOpeningMoveTest($board);
+                if ($result == null) {
                     $result = getBestMove($board);
                 }
             } else {
-                $g_maxTime = (0.1 + (($i % 30) / 10));
-                
                 if ($moveCount == 0) {
-                    $result = getOpeningMoveTest();
+                    $result = getOpeningMoveTest($board);
                 } else {
+                    $result = null;
+                }
+                
+                if ($result == null) {
                     $result = getBestMove($board);
                 }
             }
@@ -167,9 +167,11 @@ function evaluateTest($board) {
     $whiteMoveCount = 0;
     foreach ($board['whitelocations'] as $piece => $location) {
         $found = false;
+        $pieceMoves = 0;
         foreach ([0,-1,1] as $xDir) {
             for ($y=$location['row']-1, $x=$location['col']+$xDir; isset($board[$y][$x]) && $board[$y][$x] == '-'; $y--, $x+=$xDir) {
                 $whiteMoveCount ++;
+                $pieceMoves ++;
                 if ($y == 0) {
                     if ($currentMover == 1 && $lastColour == $piece) {
                         return VICTORY;
@@ -184,14 +186,19 @@ function evaluateTest($board) {
                 }
             }
         }
+        if ($pieceMoves == 0) {
+            $whiteScore -= 100;
+        }
     }
 
     $blackMoveCount = 0;
     foreach ($board['blacklocations'] as $piece => $location) {
         $found = false;
+        $pieceMoves = 0;
         foreach ([0,-1,1] as $xDir) {
             for ($y=$location['row']+1, $x=$location['col']+$xDir; isset($board[$y][$x]) && $board[$y][$x] == '-'; $y++, $x+=$xDir) {
                 $blackMoveCount ++;
+                $pieceMoves ++;
                 if ($y == 7) {
                     if ($currentMover == 2 && $lastColour == $piece) {
                         return VICTORY;
@@ -203,6 +210,9 @@ function evaluateTest($board) {
                     break;
                 }
             }
+        }
+        if ($pieceMoves == 0) {
+            $whiteScore += 100;
         }
     }
     
@@ -297,24 +307,134 @@ function getBestMoveTest($board) {
     
 }
 
-function getOpeningMoveTest() {
-    $openingMoves = [
-        ['fromRow' => 7, 'fromCol' => 0, 'row' => 3, 'col' => 0],
-        ['fromRow' => 7, 'fromCol' => 1, 'row' => 1, 'col' => 1],
-        ['fromRow' => 7, 'fromCol' => 3, 'row' => 2, 'col' => 3],
-        ['fromRow' => 7, 'fromCol' => 3, 'row' => 3, 'col' => 3],
-        ['fromRow' => 7, 'fromCol' => 4, 'row' => 2, 'col' => 4],
-        ['fromRow' => 7, 'fromCol' => 4, 'row' => 3, 'col' => 4],
-        ['fromRow' => 7, 'fromCol' => 6, 'row' => 1, 'col' => 6],
-        ['fromRow' => 7, 'fromCol' => 7, 'row' => 3, 'col' => 7],
+function boardToStringTest($board) {
+    $s = '';
+    for ($i=0; $i<8; $i++) {
+        for ($j=0; $j<8; $j++) {
+            $s .= $board[$i][$j];
+        }
+    }
+    
+    $s .= $board['lastColour'];
+    
+    return $s;
+}
+
+function getOpeningMoveTest($board) {
+    
+    $library = [
+        'olmpyrgb------------------------------------------------BGRYPMLO-' => [
+            ['fromRow' => 7, 'fromCol' => 0, 'row' => 3, 'col' => 0],
+            ['fromRow' => 7, 'fromCol' => 1, 'row' => 1, 'col' => 1],
+            ['fromRow' => 7, 'fromCol' => 3, 'row' => 2, 'col' => 3],
+            ['fromRow' => 7, 'fromCol' => 3, 'row' => 3, 'col' => 3],
+            ['fromRow' => 7, 'fromCol' => 4, 'row' => 2, 'col' => 4],
+            ['fromRow' => 7, 'fromCol' => 4, 'row' => 3, 'col' => 4],
+            ['fromRow' => 7, 'fromCol' => 6, 'row' => 1, 'col' => 6],
+            ['fromRow' => 7, 'fromCol' => 7, 'row' => 3, 'col' => 7],
+        ],
+        'olmpyrgb----------------B--------------------------------GRYPMLOp' => [
+            ['fromRow' => 0, 'fromCol' => 3, 'row' => 5, 'col' => 3],
+        ],
+        'olmpyrgb-G----------------------------------------------B-RYPMLOo' => [
+            ['fromRow' => 0, 'fromCol' => 0, 'row' => 5, 'col' => 0],
+        ],
+        'olmpyrgb-----------Y------------------------------------BGR-PMLOr' => [
+            ['fromRow' => 0, 'fromCol' => 5, 'row' => 5, 'col' => 5],
+        ],
+        'olmpyrgb-------------------Y----------------------------BGR-PMLOo' => [
+            ['fromRow' => 0, 'fromCol' => 0, 'row' => 2, 'col' => 0],
+        ],
+        'olmpyrgb------------P-----------------------------------BGRY-MLOm' => [
+            ['fromRow' => 0, 'fromCol' => 2, 'row' => 5, 'col' => 2],
+        ],
+        'olmpyrgb--------------------P---------------------------BGRY-MLOb' => [
+            ['fromRow' => 0, 'fromCol' => 7, 'row' => 2, 'col' => 7],
+        ],
+        'olmpyrgb------L-----------------------------------------BGRYPM-Ob' => [
+            ['fromRow' => 0, 'fromCol' => 7, 'row' => 5, 'col' => 7],
+        ],
+        'olmpyrgb-----------------------O------------------------BGRYPML-y' => [
+            ['fromRow' => 0, 'fromCol' => 4, 'row' => 5, 'col' => 4],
+        ],
+    ];
+    
+    $boardString = boardToStringTest($board);
+    
+    if (isset($library[$boardString])) {
+    
+        $openingMoves = $library[$boardString];
+        
+        $openingMoveNumber = rand(0,count($openingMoves)-1);
+        
+        return [
+            'score' => VICTORY,
+            'move' => $openingMoves[$openingMoveNumber],
+            'depth' => 0,
+            'elapsed' => 0,
+        ];
+    }
+    
+    return null;
+}
+
+function generateOpeningLibrary($board) {
+    global $g_maxTime;
+    
+    $g_maxTime = 120;
+    
+    $library = [
+        'olmpyrgb------------------------------------------------BGRYPMLO-' => [
+            ['fromRow' => 7, 'fromCol' => 0, 'row' => 3, 'col' => 0],
+            ['fromRow' => 7, 'fromCol' => 1, 'row' => 1, 'col' => 1],
+            ['fromRow' => 7, 'fromCol' => 3, 'row' => 2, 'col' => 3],
+            ['fromRow' => 7, 'fromCol' => 3, 'row' => 3, 'col' => 3],
+            ['fromRow' => 7, 'fromCol' => 4, 'row' => 2, 'col' => 4],
+            ['fromRow' => 7, 'fromCol' => 4, 'row' => 3, 'col' => 4],
+            ['fromRow' => 7, 'fromCol' => 6, 'row' => 1, 'col' => 6],
+            ['fromRow' => 7, 'fromCol' => 7, 'row' => 3, 'col' => 7],
+        ],
+        'olmpyrgb----------------B--------------------------------GRYPMLOp' => [
+            ['fromRow' => 0, 'fromCol' => 3, 'row' => 5, 'col' => 3],
+        ],
+        'olmpyrgb-G----------------------------------------------B-RYPMLOo' => [
+            ['fromRow' => 0, 'fromCol' => 0, 'row' => 5, 'col' => 0],
+        ],
+        'olmpyrgb-----------Y------------------------------------BGR-PMLOr' => [
+            ['fromRow' => 0, 'fromCol' => 5, 'row' => 5, 'col' => 5],
+        ],
+        'olmpyrgb-------------------Y----------------------------BGR-PMLOo' => [
+            ['fromRow' => 0, 'fromCol' => 0, 'row' => 2, 'col' => 0],
+        ],
+        'olmpyrgb------------P-----------------------------------BGRY-MLOm' => [
+            ['fromRow' => 0, 'fromCol' => 2, 'row' => 5, 'col' => 2],
+        ],
+        'olmpyrgb--------------------P---------------------------BGRY-MLOb' => [
+            ['fromRow' => 0, 'fromCol' => 7, 'row' => 2, 'col' => 7],
+        ],
+        'olmpyrgb------L-----------------------------------------BGRYPM-Ob' => [
+            ['fromRow' => 0, 'fromCol' => 7, 'row' => 5, 'col' => 7],
+        ],
+        'olmpyrgb-----------------------O------------------------BGRYPML-y' => [
+            ['fromRow' => 0, 'fromCol' => 4, 'row' => 5, 'col' => 4],
+        ],
     ];
 
-    $openingMoveNumber = rand(0,count($openingMoves)-1);
+    
+    foreach ($library['olmpyrgb------------------------------------------------BGRYPMLO-'] as $move) {
+        $newBoard = makeMove($board, $move);
+        $result = getBestMoveTest($newBoard);
+        $library[boardToStringTest($newBoard)] = [$result['move']];
+    }
 
-    return [
-        'score' => VICTORY,
-        'move' => $openingMoves[$openingMoveNumber],
-        'depth' => 0,
-        'elapsed' => 0,
-    ];
+    echo '$library = [' . PHP_EOL;
+    foreach ($library as $position => $moves) {
+        echo "    '$position' => [" . PHP_EOL;
+        foreach ($moves as $move) {
+            echo "        ['fromRow' => " . $move['fromRow'] . ", 'fromCol' => " . $move['fromCol'] . ", 'row' => " . $move['row'] . ", 'col' => " . $move['col'] . "]," . PHP_EOL;
+        }
+        echo "    ]," . PHP_EOL;
+    }
+    echo "]" . PHP_EOL;
+    
 }
