@@ -21,11 +21,11 @@ function test() {
     $g_nodes = 0;
     $testStartTime = microtime(true);
     
-    for ($i=0; $i<1000; $i++) {
+    for ($i=0; $i<100; $i++) {
 
         $board = $originalBoard;
         echo "GAME " . ($i + 1) . PHP_EOL;
-        $g_maxTime = 0.1 + (($i % 90) / 10);
+        $g_maxTime = 0.1 + ($i / 10);
 
         echo "Max time = " . $g_maxTime . PHP_EOL;
 
@@ -59,22 +59,10 @@ function test() {
 
             $t = microtime(true);
 
-            if ($g_evaluationFunction == 'evaluateTest') {
-                //$g_evaluationFunction = "evaluate";
-                $result = getOpeningMoveTest($board);
-                if ($result == null) {
-                    $result = getBestMove($board);
-                }
-            } else {
-                if ($moveCount == 0) {
-                    $result = getOpeningMoveTest($board);
-                } else {
-                    $result = null;
-                }
-                
-                if ($result == null) {
-                    $result = getBestMove($board);
-                }
+            $result = getOpeningMoveTest($board);
+
+            if ($result == null) {
+                $result = getBestMove($board);
             }
 
             if ($result['move'] == null) {
@@ -84,7 +72,6 @@ function test() {
             $move = $result['move'];
             $depth = $result['depth'];
 
-            //echo str_pad($g_evaluationFunction, 13) . " reached depth " . $depth . ", evaluating " . $g_nodes . " positions" . PHP_EOL;
             $board = makeMove($board, $move);
             $moveCount ++;
 

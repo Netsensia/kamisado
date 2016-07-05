@@ -33,7 +33,6 @@ function run() {
 }
 
 function getMoves($board) {
-    
     $moves = [];
     
     if ($board['mover'] == 1) {
@@ -48,7 +47,7 @@ function getMoves($board) {
         foreach ($board[$colourIndex] as $location) {
             $col = $location['col'];
             $row = $location['row'];
-            
+    
             foreach ([0,-1,1] as $xDir) {
                 for ($y=$row+$yDir, $x=$col+$xDir; isset($board[$y][$x]) && $board[$y][$x] == '-'; $y+=$yDir, $x+=$xDir) {
                     $moves[] = [
@@ -62,12 +61,22 @@ function getMoves($board) {
         }
     } else {
         $location = $board[$colourIndex][$board['lastColour']];
-        
+    
         $col = $location['col'];
         $row = $location['row'];
-        
+    
         foreach ([0,-1,1] as $xDir) {
             for ($y=$row+$yDir, $x=$col+$xDir; isset($board[$y][$x]) && $board[$y][$x] == '-'; $y+=$yDir, $x+=$xDir) {
+                if ($y == 0 || $y == 7) {
+                    return [
+                        [
+                            'fromRow' => $row,
+                            'fromCol' => $col,
+                            'row' => $y,
+                            'col' => $x,
+                        ],
+                    ];
+                }
                 $moves[] = [
                     'fromRow' => $row,
                     'fromCol' => $col,
@@ -76,16 +85,6 @@ function getMoves($board) {
                 ];
             }
         }
-    }
-
-    if ($board['mover'] == 1) {
-        usort($moves, function ($a, $b) {
-            return $a['row'] < $b['row'] ? -1 : ($a['row'] == $b['row'] ? 0 : 1);
-        });
-    } else {
-        usort($moves, function ($a, $b) {
-            return $a['row'] > $b['row'] ? -1 : ($a['row'] == $b['row'] ? 0 : 1);
-        });
     }
     
     return $moves;
@@ -183,10 +182,6 @@ function negamax($board, $depth, $alpha, $beta, $maxDepth, $moveStartTime, $maxT
     
     $bestMove = null;
     
-    if ($depth > 400) {
-        throw new Exception('Maximum depth reached');    
-    }
-    
     if ($depth == $maxDepth) {
         global $g_nodes;
         
@@ -218,6 +213,7 @@ function negamax($board, $depth, $alpha, $beta, $maxDepth, $moveStartTime, $maxT
         }
                 
         $newBoard = makeMove($board, $move);
+        
         $result = negamax($newBoard, $depth + 1, -$beta, -$alpha, $maxDepth, $moveStartTime, $maxTime);
         
         if ($result == STATUS_GETOUT) {
