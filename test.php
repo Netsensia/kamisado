@@ -2,7 +2,7 @@
 
 function test() {
     global $colours;
-    global $g_evaluationFunction, $g_nodes, $g_maxTime;
+    global $g_evaluationFunction, $g_getMovesFunction, $g_nodes, $g_maxTime;
 
     $board = readBoard('input.txt', $colours);
     
@@ -17,21 +17,29 @@ function test() {
 
     $totalMoves = 0;
     $totalTime = 0;
+    
+    $g_nodes = 0;
+    $testStartTime = microtime(true);
+    
     for ($i=0; $i<1000; $i++) {
 
         $board = $originalBoard;
         echo "GAME " . ($i + 1) . PHP_EOL;
-        $g_maxTime = 0.1 + (($i % 30) / 10);
+        $g_maxTime = 0.1 + (($i % 90) / 10);
 
         echo "Max time = " . $g_maxTime . PHP_EOL;
 
         if ($i % 2 == 0) {
             $whiteEvaluationFunction = "evaluate";
             $blackEvaluationFunction = "evaluateTest";
+            $whiteGetMovesFunction = "getMoves";
+            $blackGetMovesFunction = "getMovesTest";
             $blackTestGames ++;
         } else {
             $whiteEvaluationFunction = "evaluateTest";
             $blackEvaluationFunction = "evaluate";
+            $whiteGetMovesFunction = "getMovesTest";
+            $blackGetMovesFunction = "getMoves";
             $whiteTestGames ++;
         }
         
@@ -43,16 +51,16 @@ function test() {
 
             if ($moveCount % 2 == 0) {
                 $g_evaluationFunction = $whiteEvaluationFunction;
+                $g_getMovesFunction = $whiteGetMovesFunction;
             } else {
                 $g_evaluationFunction = $blackEvaluationFunction;
+                $g_getMovesFunction = $blackGetMovesFunction;
             }
 
             $t = microtime(true);
 
-            $g_nodes = 0;
-
             if ($g_evaluationFunction == 'evaluateTest') {
-                $g_evaluationFunction = "evaluate";
+                //$g_evaluationFunction = "evaluate";
                 $result = getOpeningMoveTest($board);
                 if ($result == null) {
                     $result = getBestMove($board);
@@ -111,6 +119,12 @@ function test() {
             }
         }
         echo str_pad('', 60, '-') . PHP_EOL;
+        $timeSoFar = microtime(true) - $testStartTime;
+        $nodesPerSecond = $g_nodes / $timeSoFar;
+        
+        echo "Nodes per second = " . number_format($nodesPerSecond, 2) . PHP_EOL;
+        echo str_pad('', 60, '-') . PHP_EOL;
+        
 
     }
 }
@@ -153,83 +167,63 @@ function printBoard($board) {
 
 }
 
-function evaluateZero($board) {
-    return 0;
-}
-
 function evaluateTest($board) {
-
+    
     $whiteScore = 0;
 
     $currentMover = $board['mover'];
     $lastColour = $board['lastColour'];
-    
-    $whiteMoveCount = 0;
+
     foreach ($board['whitelocations'] as $piece => $location) {
+        $col = $location['col'];
+        $row = $location['row'];
+
         $found = false;
-        $pieceMoves = 0;
         foreach ([0,-1,1] as $xDir) {
-            for ($y=$location['row']-1, $x=$location['col']+$xDir; isset($board[$y][$x]) && $board[$y][$x] == '-'; $y--, $x+=$xDir) {
-                $whiteMoveCount ++;
-                $pieceMoves ++;
+            for ($y=$row-1, $x=$col+$xDir; isset($board[$y][$x]) && $board[$y][$x] == '-'; $y--, $x+=$xDir) {
                 if ($y == 0) {
                     if ($currentMover == 1 && $lastColour == $piece) {
                         return VICTORY;
                     }
-                    
-                    if (!$found) {
-                        $whiteScore += 100;
-                    }
-                    
                     $found = true;
+                    $whiteScore ++;
                     break;
                 }
             }
-        }
-        if ($pieceMoves == 0) {
-            $whiteScore -= 100;
+            if ($found) {
+                break;
+            }
         }
     }
 
-    $blackMoveCount = 0;
     foreach ($board['blacklocations'] as $piece => $location) {
+        $col = $location['col'];
+        $row = $location['row'];
+
         $found = false;
-        $pieceMoves = 0;
         foreach ([0,-1,1] as $xDir) {
-            for ($y=$location['row']+1, $x=$location['col']+$xDir; isset($board[$y][$x]) && $board[$y][$x] == '-'; $y++, $x+=$xDir) {
-                $blackMoveCount ++;
-                $pieceMoves ++;
+            for ($y=$row+1, $x=$col+$xDir; isset($board[$y][$x]) && $board[$y][$x] == '-'; $y++, $x+=$xDir) {
                 if ($y == 7) {
                     if ($currentMover == 2 && $lastColour == $piece) {
                         return VICTORY;
                     }
-                    if (!$found) {
-                        $whiteScore -= 100;
-                    }
                     $found = true;
+                    $whiteScore --;
                     break;
                 }
             }
-        }
-        if ($pieceMoves == 0) {
-            $whiteScore += 100;
+            if ($found) {
+                break;
+            }
         }
     }
-    
-    if ($currentMover == 1) {
-        if ($whiteMoveCount == 0) {
-            return -VICTORY;
-        }
+
+    if ($board['mover'] == 1) {
+        return $whiteScore;
     } else {
-        if ($blackMoveCount == 0) {
-            return -VICTORY;
-        }
+        return -$whiteScore;
     }
     
-    $whiteScore += $whiteMoveCount;
-    $whiteScore -= $blackMoveCount;
-    
-    return ($currentMover == 1) ? $whiteScore : -$whiteScore;
 }
 
 function getBestMoveTest($board) {
@@ -424,7 +418,7 @@ function generateOpeningLibrary($board) {
     foreach ($library['olmpyrgb------------------------------------------------BGRYPMLO-'] as $move) {
         $newBoard = makeMove($board, $move);
         $result = getBestMoveTest($newBoard);
-        $library[boardToStringTest($newBoard)] = [$result['move']];
+        $library[boardToString($newBoard)] = [$result['move']];
     }
 
     echo '$library = [' . PHP_EOL;
@@ -437,4 +431,63 @@ function generateOpeningLibrary($board) {
     }
     echo "]" . PHP_EOL;
     
+}
+
+function getMovesTest($board) {
+
+    $moves = [];
+
+    if ($board['mover'] == 1) {
+        $yDir = -1;
+        $colourIndex = 'whitelocations';
+    } else {
+        $yDir = 1;
+        $colourIndex = 'blacklocations';
+    }
+
+    if ($board['lastColour'] == '-') {
+        foreach ($board[$colourIndex] as $location) {
+            $col = $location['col'];
+            $row = $location['row'];
+
+            foreach ([0,-1,1] as $xDir) {
+                for ($y=$row+$yDir, $x=$col+$xDir; isset($board[$y][$x]) && $board[$y][$x] == '-'; $y+=$yDir, $x+=$xDir) {
+                    $moves[] = [
+                        'fromRow' => $row,
+                        'fromCol' => $col,
+                        'row' => $y,
+                        'col' => $x,
+                    ];
+                }
+            }
+        }
+    } else {
+        $location = $board[$colourIndex][$board['lastColour']];
+
+        $col = $location['col'];
+        $row = $location['row'];
+
+        foreach ([0,-1,1] as $xDir) {
+            for ($y=$row+$yDir, $x=$col+$xDir; isset($board[$y][$x]) && $board[$y][$x] == '-'; $y+=$yDir, $x+=$xDir) {
+                if ($y == 0 || $y == 7) {
+                    return [
+                        [
+                            'fromRow' => $row,
+                            'fromCol' => $col,
+                            'row' => $y,
+                            'col' => $x,
+                        ],
+                    ];
+                }
+                $moves[] = [
+                    'fromRow' => $row,
+                    'fromCol' => $col,
+                    'row' => $y,
+                    'col' => $x,
+                ];
+            }
+        }
+    }
+
+    return $moves;
 }

@@ -34,8 +34,6 @@ function run() {
 
 function getMoves($board) {
     
-    global $g_evaluationFunction;
-    
     $moves = [];
     
     if ($board['mover'] == 1) {
@@ -95,7 +93,7 @@ function getMoves($board) {
 
 function makeMove($board, $move)
 {
-    global $colours, $zobristValues;
+    global $colours;
 
     $colourIndex = $board['mover'] == 1 ? 'whitelocations' : 'blacklocations';
     foreach ($board[$colourIndex] as &$location) {
@@ -129,18 +127,18 @@ function evaluate($board) {
 
         $found = false;
         foreach ([0,-1,1] as $xDir) {
-            if ($found) {
-                break;
-            }
             for ($y=$row-1, $x=$col+$xDir; isset($board[$y][$x]) && $board[$y][$x] == '-'; $y--, $x+=$xDir) {
                 if ($y == 0) {
-                    $found = true;
                     if ($currentMover == 1 && $lastColour == $piece) {
                         return VICTORY;
                     }
+                    $found = true;
                     $whiteScore ++;
                     break;
                 }
+            }
+            if ($found) {
+                break;
             }
         }
     }
@@ -151,9 +149,6 @@ function evaluate($board) {
 
         $found = false;
         foreach ([0,-1,1] as $xDir) {
-            if ($found) {
-                break;
-            }
             for ($y=$row+1, $x=$col+$xDir; isset($board[$y][$x]) && $board[$y][$x] == '-'; $y++, $x+=$xDir) {
                 if ($y == 7) {
                     if ($currentMover == 2 && $lastColour == $piece) {
@@ -163,6 +158,9 @@ function evaluate($board) {
                     $whiteScore --;
                     break;
                 }
+            }
+            if ($found) {
+                break;
             }
         }
     }
@@ -175,14 +173,9 @@ function evaluate($board) {
     
 }
 
-function evaluateWrapper($board) {
-    global $g_evaluationFunction, $g_nodes;
-    
-    $g_nodes ++;
-    return $g_evaluationFunction($board);
-}
-
 function negamax($board, $depth, $alpha, $beta, $maxDepth, $moveStartTime, $maxTime) {
+    
+    global $g_evaluationFunction, $g_getMovesFunction;
     
     if (microtime(true) - $moveStartTime > $maxTime) {
         return STATUS_GETOUT;    
@@ -195,15 +188,19 @@ function negamax($board, $depth, $alpha, $beta, $maxDepth, $moveStartTime, $maxT
     }
     
     if ($depth == $maxDepth) {
+        global $g_nodes;
+        
+        $g_nodes ++;
+        
         return [
-            'score' => evaluateWrapper($board),
+            'score' => $g_evaluationFunction($board),
             'move' => null,
         ];
     }
 
     $bestScore = -PHP_INT_MAX;
     
-    $moves = getMoves($board);
+    $moves = $g_getMovesFunction($board);
     
     if (count($moves) == 0) {
         return [
@@ -288,7 +285,7 @@ function readBoard($input, &$colours) {
 
 function getBestMove($board) {
     
-    global $g_maxTime;
+    global $g_maxTime, $g_getMovesFunction;
 
     $moveStartTime = microtime(true);
 
@@ -296,7 +293,7 @@ function getBestMove($board) {
 
     $start = microtime(true);
     
-    $moves = getMoves($board);
+    $moves = $g_getMovesFunction($board);
     
     foreach ($moves as $move) {
         if ($move['row'] == 0 || $move['row'] == 7) {
