@@ -43,47 +43,29 @@ function getMoves($board) {
         $colourIndex = 'blacklocations';
     }
     
-    if ($board['lastColour'] == '-') {
-        foreach ($board[$colourIndex] as $location) {
-            $col = $location['col'];
-            $row = $location['row'];
-    
-            foreach ([0,-1,1] as $xDir) {
-                for ($y=$row+$yDir, $x=$col+$xDir; isset($board[$y][$x]) && $board[$y][$x] == '-'; $y+=$yDir, $x+=$xDir) {
-                    $moves[] = [
+    $location = $board[$colourIndex][$board['lastColour']];
+
+    $col = $location['col'];
+    $row = $location['row'];
+
+    foreach ([0,-1,1] as $xDir) {
+        for ($y=$row+$yDir, $x=$col+$xDir; @$board[$y][$x] == '-'; $y+=$yDir, $x+=$xDir) {
+            if ($y == 0 || $y == 7) {
+                return [
+                    [
                         'fromRow' => $row,
                         'fromCol' => $col,
                         'row' => $y,
                         'col' => $x,
-                    ];
-                }
-            }
-        }
-    } else {
-        $location = $board[$colourIndex][$board['lastColour']];
-    
-        $col = $location['col'];
-        $row = $location['row'];
-    
-        foreach ([0,-1,1] as $xDir) {
-            for ($y=$row+$yDir, $x=$col+$xDir; isset($board[$y][$x]) && $board[$y][$x] == '-'; $y+=$yDir, $x+=$xDir) {
-                if ($y == 0 || $y == 7) {
-                    return [
-                        [
-                            'fromRow' => $row,
-                            'fromCol' => $col,
-                            'row' => $y,
-                            'col' => $x,
-                        ],
-                    ];
-                }
-                $moves[] = [
-                    'fromRow' => $row,
-                    'fromCol' => $col,
-                    'row' => $y,
-                    'col' => $x,
+                    ],
                 ];
             }
+            $moves[] = [
+                'fromRow' => $row,
+                'fromCol' => $col,
+                'row' => $y,
+                'col' => $x,
+            ];
         }
     }
     
@@ -103,9 +85,7 @@ function makeMove($board, $move)
         }
     }
     
-    $piece = $board[$move['fromRow']][$move['fromCol']];
-    
-    $board[$move['row']][$move['col']] = $piece;
+    $board[$move['row']][$move['col']] = $board[$move['fromRow']][$move['fromCol']];
     $board[$move['fromRow']][$move['fromCol']] = '-';
     $board['mover'] = $board['mover'] == 1 ? 2 : 1;
     $board['lastColour'] = $colours[$board['mover']][$move['row']][$move['col']];
@@ -126,7 +106,7 @@ function evaluate($board) {
 
         $found = false;
         foreach ([0,-1,1] as $xDir) {
-            for ($y=$row-1, $x=$col+$xDir; isset($board[$y][$x]) && $board[$y][$x] == '-'; $y--, $x+=$xDir) {
+            for ($y=$row-1, $x=$col+$xDir; @$board[$y][$x] == '-'; $y--, $x+=$xDir) {
                 if ($y == 0) {
                     if ($currentMover == 1 && $lastColour == $piece) {
                         return VICTORY;
@@ -148,7 +128,7 @@ function evaluate($board) {
 
         $found = false;
         foreach ([0,-1,1] as $xDir) {
-            for ($y=$row+1, $x=$col+$xDir; isset($board[$y][$x]) && $board[$y][$x] == '-'; $y++, $x+=$xDir) {
+            for ($y=$row+1, $x=$col+$xDir; @$board[$y][$x] == '-'; $y++, $x+=$xDir) {
                 if ($y == 7) {
                     if ($currentMover == 2 && $lastColour == $piece) {
                         return VICTORY;

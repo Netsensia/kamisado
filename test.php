@@ -132,14 +132,23 @@ function isGameOver($board, $move) {
 function printBoard($board) {
     global $colours;
 
-    echo $board['mover'] . PHP_EOL;
+    echo '|--------------------------|' . PHP_EOL;
+    echo '|Mover is ' . ($board['mover'] == 1 ? 'White' : 'Black') . PHP_EOL;
+    
+    echo '|--------------------------|' . PHP_EOL;
+    echo '|    0| 1| 2| 3| 4| 5| 6| 7|' . PHP_EOL;
+    echo '|--------------------------|' . PHP_EOL;
+        
     for ($row=0; $row<8; $row++) {
+        echo '|' . $row . ' |';
         for ($col=0; $col<8; $col++) {
             echo $colours[1][$row][$col];
             echo $board[$row][$col];
+            echo '|';
         }
         echo PHP_EOL;
     }
+    echo '|--------------------------|' . PHP_EOL;
     echo $board['lastColour'] . PHP_EOL;
     echo 'WHITE' . PHP_EOL;
     foreach ($board['whitelocations'] as $location) {
@@ -151,6 +160,7 @@ function printBoard($board) {
         echo '[' . $location['row'] . ',' . $location['col'] . ']';
     }
     echo PHP_EOL;
+    echo '--------------------------' . PHP_EOL;
 
 }
 
@@ -432,47 +442,29 @@ function getMovesTest($board) {
         $colourIndex = 'blacklocations';
     }
 
-    if ($board['lastColour'] == '-') {
-        foreach ($board[$colourIndex] as $location) {
-            $col = $location['col'];
-            $row = $location['row'];
+    $location = $board[$colourIndex][$board['lastColour']];
 
-            foreach ([0,-1,1] as $xDir) {
-                for ($y=$row+$yDir, $x=$col+$xDir; isset($board[$y][$x]) && $board[$y][$x] == '-'; $y+=$yDir, $x+=$xDir) {
-                    $moves[] = [
+    $col = $location['col'];
+    $row = $location['row'];
+
+    foreach ([0,-1,1] as $xDir) {
+        for ($y=$row+$yDir, $x=$col+$xDir; @$board[$y][$x] == '-'; $y+=$yDir, $x+=$xDir) {
+            if ($y == 0 || $y == 7) {
+                return [
+                    [
                         'fromRow' => $row,
                         'fromCol' => $col,
                         'row' => $y,
                         'col' => $x,
-                    ];
-                }
-            }
-        }
-    } else {
-        $location = $board[$colourIndex][$board['lastColour']];
-
-        $col = $location['col'];
-        $row = $location['row'];
-
-        foreach ([0,-1,1] as $xDir) {
-            for ($y=$row+$yDir, $x=$col+$xDir; isset($board[$y][$x]) && $board[$y][$x] == '-'; $y+=$yDir, $x+=$xDir) {
-                if ($y == 0 || $y == 7) {
-                    return [
-                        [
-                            'fromRow' => $row,
-                            'fromCol' => $col,
-                            'row' => $y,
-                            'col' => $x,
-                        ],
-                    ];
-                }
-                $moves[] = [
-                    'fromRow' => $row,
-                    'fromCol' => $col,
-                    'row' => $y,
-                    'col' => $x,
+                    ],
                 ];
             }
+            $moves[] = [
+                'fromRow' => $row,
+                'fromCol' => $col,
+                'row' => $y,
+                'col' => $x,
+            ];
         }
     }
 
