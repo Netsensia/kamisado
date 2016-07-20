@@ -164,6 +164,10 @@ function printBoard($board) {
 
 }
 
+const WEIGHT_STRIKE = 20;
+const WEIGHT_PROGRESS = 10;
+const WEIGHT_MOVECOUNT = 1;
+
 function evaluateTest($board) {
     
     $whiteScore = 0;
@@ -174,21 +178,25 @@ function evaluateTest($board) {
     foreach ($board['whitelocations'] as $piece => $location) {
         $col = $location['col'];
         $row = $location['row'];
-
+        
+        $whiteScore += (7-$row) * WEIGHT_PROGRESS;
+        
         $found = false;
         foreach ([0,-1,1] as $xDir) {
-            for ($y=$row-1, $x=$col+$xDir; isset($board[$y][$x]) && $board[$y][$x] == '-'; $y--, $x+=$xDir) {
+            
+            for ($y=$row-1, $x=$col+$xDir; @$board[$y][$x] == '-'; $y--, $x+=$xDir) {
+                $whiteScore += WEIGHT_MOVECOUNT;
+                
                 if ($y == 0) {
                     if ($currentMover == 1 && $lastColour == $piece) {
                         return VICTORY;
                     }
-                    $found = true;
-                    $whiteScore ++;
+                    if (!$found) {
+                        $whiteScore += WEIGHT_STRIKE;
+                        $found = true;
+                    }
                     break;
                 }
-            }
-            if ($found) {
-                break;
             }
         }
     }
@@ -197,20 +205,23 @@ function evaluateTest($board) {
         $col = $location['col'];
         $row = $location['row'];
 
+        $whiteScore -= $row * WEIGHT_PROGRESS;
+        
         $found = false;
         foreach ([0,-1,1] as $xDir) {
-            for ($y=$row+1, $x=$col+$xDir; isset($board[$y][$x]) && $board[$y][$x] == '-'; $y++, $x+=$xDir) {
+            for ($y=$row+1, $x=$col+$xDir; @$board[$y][$x] == '-'; $y++, $x+=$xDir) {
+                $whiteScore -= WEIGHT_MOVECOUNT;
+                
                 if ($y == 7) {
                     if ($currentMover == 2 && $lastColour == $piece) {
                         return VICTORY;
                     }
-                    $found = true;
-                    $whiteScore --;
+                    if (!$found) {
+                        $whiteScore -= WEIGHT_STRIKE;
+                        $found = true;
+                    }
                     break;
                 }
-            }
-            if ($found) {
-                break;
             }
         }
     }
@@ -430,6 +441,27 @@ function generateOpeningLibrary($board) {
     
 }
 
+function makeMoveTest($board, $move)
+{
+    global $colours;
+
+    $colourIndex = $board['mover'] == 1 ? 'whitelocations' : 'blacklocations';
+    foreach ($board[$colourIndex] as &$location) {
+        if ($location['row'] == $move['fromRow'] && $location['col'] == $move['fromCol']) {
+            $location['row'] = $move['row'];
+            $location['col'] = $move['col'];
+            break;
+        }
+    }
+
+    $board[$move['row']][$move['col']] = $board[$move['fromRow']][$move['fromCol']];
+    $board[$move['fromRow']][$move['fromCol']] = '-';
+    $board['mover'] = $board['mover'] == 1 ? 2 : 1;
+    $board['lastColour'] = $colours[$board['mover']][$move['row']][$move['col']];
+
+    return $board;
+}
+
 function getMovesTest($board) {
 
     $moves = [];
@@ -468,5 +500,11 @@ function getMovesTest($board) {
         }
     }
 
+    usort($moves, function ($a, $b) use ($board) {
+        $scoreA = -evaluateTest(makeMoveTest($board, $a));
+        $scoreB = -evaluateTest(makeMoveTest($board, $b));
+        return $scoreA > $scoreB ? -1 : ($scoreA == $scoreB ? 0 : 1);
+    });
+    
     return $moves;
 }
