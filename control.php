@@ -58,28 +58,55 @@ for ($gamesPlayed=1; $gamesPlayed<1000; $gamesPlayed++) {
     }
     
     $gameOver = false;
+    echo '============================' . PHP_EOL;
+    echo 'White = ' . $whitePlayer . PHP_EOL;
+    echo 'Black = ' . $blackPlayer . PHP_EOL;
     while (!$gameOver) {
         $player = $board['mover'] == 1 ? $whitePlayer : $blackPlayer;
         
-        $secondsPerMove = $gamesPlayed / 100;
-        $champion = proc_open('php ' . $player . ' ' . $secondsPerMove, $descriptorspec, $pipes);
+        $secondsPerMove = 0.5 + ($gamesPlayed / 100);
+        $command = 'php ' . $player . ' ' . $secondsPerMove;
+        echo $command . PHP_EOL;
+        $champion = proc_open($command, $descriptorspec, $pipes);
         
         fwrite($pipes[0], getBoard($board));
         
         $move = null;
         do {
-            $move = fgets($pipes[1]);
+            $move = trim(fgets($pipes[1]));
         } while ($move == null);
         
         if ($move == '-1') {
             $gameOver = true;
-            if ($player == 'kamisado.php') {
-                if ($player == $whitePlayer) {
-                    $challengerWinsWhite ++;
+            if ($player == 'kamisado.php') { // loser was the defending champion
+                if ($player == $whitePlayer) { // defending champion was playing the white pieces
+                    $challengerWinsBlack ++;
                 } else {
+                    $challengerWinsWhite ++;
+                }
+            }
+        } else {
+            $parts = explode(' ', $move);
+            if ($parts[2] == 0) {
+                echo '[' . $move . ']' . PHP_EOL;
+                $gameOver = true;
+                $board = makeMove($board, $move);
+                if ($player == 'kamisado_challenger.php') { // winner was the challenger and was playing white
+                    $challengerWinsWhite ++;
+                }
+            }
+            if ($parts[2] == 7) {
+                echo '[' . $move . ']' . PHP_EOL;
+                $gameOver = true;
+                $board = makeMove($board, $move);
+                if ($player == 'kamisado_challenger.php') { // winner was the challenger and was playing black
                     $challengerWinsBlack ++;
                 }
             }
+        }
+        
+        if ($gameOver) {
+            
             echo PHP_EOL;
             echo getBoard($board);
             
@@ -92,7 +119,7 @@ for ($gamesPlayed=1; $gamesPlayed<1000; $gamesPlayed++) {
             }
             echo 'Challenger wins = ' . ($challengerWinsWhite + $challengerWinsBlack) . ' (' . number_format((($challengerWinsWhite + $challengerWinsBlack) / ($challengerGamesWhite + $challengerGamesBlack)) * 100, 2) . '%)' . PHP_EOL;
         } else {
-            echo '.';
+            echo '[' . $move . ']' . PHP_EOL;
             $board = makeMove($board, $move);
         }
         

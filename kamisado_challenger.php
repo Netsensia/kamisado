@@ -345,6 +345,7 @@ function boardToString($board) {
 }
 
 function getOpeningMove($board) {
+    
     $library = [
         'olmpyrgb------------------------------------------------BGRYPMLO-' => [
             ['fromRow' => 7, 'fromCol' => 0, 'row' => 3, 'col' => 0],
