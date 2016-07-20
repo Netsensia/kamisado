@@ -66,7 +66,7 @@ for ($gamesPlayed=1; $gamesPlayed<1000; $gamesPlayed++) {
         
         $secondsPerMove = 0.5 + ($gamesPlayed / 100);
         $command = 'php ' . $player . ' ' . $secondsPerMove;
-        echo $command . PHP_EOL;
+        echo $command . ' => ';
         $champion = proc_open($command, $descriptorspec, $pipes);
         
         fwrite($pipes[0], getBoard($board));

@@ -3,6 +3,9 @@
 const VICTORY = 1000000;
 const MAX_DEPTH = 50;
 const STATUS_GETOUT = -1;
+const WEIGHT_STRIKE = 20;
+const WEIGHT_PROGRESS = 10;
+const WEIGHT_MOVECOUNT = 1;
 
 $colours = [];
 
@@ -98,21 +101,25 @@ function evaluate($board) {
     foreach ($board['whitelocations'] as $piece => $location) {
         $col = $location['col'];
         $row = $location['row'];
-
+        
+        $whiteScore += (7-$row) * WEIGHT_PROGRESS;
+        
         $found = false;
         foreach ([0,-1,1] as $xDir) {
+            
             for ($y=$row-1, $x=$col+$xDir; @$board[$y][$x] == '-'; $y--, $x+=$xDir) {
+                $whiteScore += WEIGHT_MOVECOUNT;
+                
                 if ($y == 0) {
                     if ($currentMover == 1 && $lastColour == $piece) {
                         return VICTORY;
                     }
-                    $found = true;
-                    $whiteScore ++;
+                    if (!$found) {
+                        $whiteScore += WEIGHT_STRIKE;
+                        $found = true;
+                    }
                     break;
                 }
-            }
-            if ($found) {
-                break;
             }
         }
     }
@@ -121,20 +128,23 @@ function evaluate($board) {
         $col = $location['col'];
         $row = $location['row'];
 
+        $whiteScore -= $row * WEIGHT_PROGRESS;
+        
         $found = false;
         foreach ([0,-1,1] as $xDir) {
             for ($y=$row+1, $x=$col+$xDir; @$board[$y][$x] == '-'; $y++, $x+=$xDir) {
+                $whiteScore -= WEIGHT_MOVECOUNT;
+                
                 if ($y == 7) {
                     if ($currentMover == 2 && $lastColour == $piece) {
                         return VICTORY;
                     }
-                    $found = true;
-                    $whiteScore --;
+                    if (!$found) {
+                        $whiteScore -= WEIGHT_STRIKE;
+                        $found = true;
+                    }
                     break;
                 }
-            }
-            if ($found) {
-                break;
             }
         }
     }
